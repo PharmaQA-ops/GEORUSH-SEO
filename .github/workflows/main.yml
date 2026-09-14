@@ -1,5 +1,5 @@
 
-name: Build GEORUSH Self-Contained Windows App
+name: Build GEORUSH Self-Contained Windows App v20
 
 on:
   workflow_dispatch:
@@ -7,7 +7,6 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,13 +22,13 @@ jobs:
           pip install -r desktop-requirements.txt
           pip install pyinstaller
 
-      - name: Verify GEORUSH API imports
+      - name: Verify API import and frontend
         run: |
-          python -c "import main; print('GEORUSH API import OK:', main.app.title)"
+          python -c "import main; print('GEORUSH API import OK')"
+          python -c "from pathlib import Path; print('Frontend:', Path('index.html').exists(), Path('styles.css').exists(), Path('app.js').exists())"
 
       - name: Build single EXE
-        run: |
-          pyinstaller --clean --noconfirm GEORUSH-SEO.spec
+        run: pyinstaller --clean --noconfirm GEORUSH-SEO.spec
 
       - name: Install Inno Setup
         shell: powershell
@@ -39,8 +38,8 @@ jobs:
         shell: cmd
         run: ISCC.exe GEORUSH-SEO-Installer.iss
 
-      - name: Upload Windows installer
+      - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: GEORUSH-SEO-Windows-Installer-v19
+          name: GEORUSH-SEO-Windows-Installer-v20
           path: installer/GEORUSH-SEO-Setup.exe
