@@ -1,17 +1,36 @@
 # GEORUSH SEO
-Step 4 — GEORUSH SEO Score.
+Step 5 — Google Search Console foundation.
 
-Flat architecture. The crawl now produces a weighted 0–100 SEO score:
-Technical SEO 30%, Indexability 20%, On-Page SEO 20%, Content Quality 15%, Internal Linking 10%, Performance 5%.
+Flat architecture:
+- index.html
+- styles.css
+- app.js
+- main.py
+- crawler.py
+- score.py
+- gsc.py
+- requirements.txt
 
-Score grades:
-90–100 Excellent
-80–89 Good
-70–79 Needs Improvement
-50–69 Poor
-0–49 Critical
+GSC capabilities:
+- Search clicks
+- Impressions
+- CTR
+- Average position
+- Query/page dimensions
+- Date range
+- Up to 25,000 rows per request
+- OAuth access-token-ready API
 
-Run:
+Endpoints:
+GET /api/health
+POST /api/crawl
+GET /api/gsc/demo
+POST /api/gsc/search-analytics
+
+Security:
+Never commit Google client secrets, access tokens, or refresh tokens to GitHub. Use environment variables or a secure backend credential store.
+
+Run locally:
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
