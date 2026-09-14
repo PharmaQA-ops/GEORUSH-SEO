@@ -24,6 +24,15 @@
 <tbody id="rows"><tr><td colspan="6">Enter a site and run an audit.</td></tr></tbody></table></section>
 </main>
 <script src="app.js"></script>
+<script id="GEORUSH-NAV-BOOTSTRAP">
+document.addEventListener("DOMContentLoaded",function(){
+ const names={"dashboard":"dashboard","keywords":"keywords","rankings":"rankings","competitors":"competitors","site audit":"audit","content":"content","backlinks":"backlinks","analytics":"analytics"};
+ document.querySelectorAll("a,button,li,div,span").forEach(function(el){
+  const t=(el.textContent||"").trim().toLowerCase();
+  if(names[t]&&!el.getAttribute("data-page")){el.setAttribute("data-page",names[t]);el.style.cursor="pointer";}
+ });
+});
+</script>
 </body></html>
 <section id="dashboard" data-section="dashboard" class="georush-page-section" style="display:none"><h2>Dashboard</h2><p>GEORUSH Dashboard module.</p></section>
 

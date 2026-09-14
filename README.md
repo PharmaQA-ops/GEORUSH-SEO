@@ -1,26 +1,19 @@
-# GEORUSH SEO
-Step 9 — Analytics + working sidebar navigation.
+# GEORUSH SEO — Step 10
+AI Intelligence + complete navigation/search fix.
 
-Flat architecture.
-
-Analytics foundation:
-- 28-day analytics summary
-- Sessions/users/conversions placeholders for GA4
-- GSC clicks/impressions/CTR/position compatibility
-- `/api/analytics/summary`
-- GA4 environment-variable placeholders
-
-Navigation fix:
-- Sidebar items are clickable
-- Dashboard, Keywords, Rankings, Competitors, Site Audit, Content, Backlinks and Analytics use in-page sections/hash navigation
-- Active navigation state
-- Browser back/forward support
-- No separate HTML pages required
+Step 10 adds:
+- GEORUSH AI rules engine
+- `/api/ai/ask`
+- Robust delegated sidebar navigation
+- Dashboard / Keywords / Rankings / Competitors / Site Audit / Content / Backlinks / Analytics
+- Hash navigation and browser back/forward
+- Search fallback against latest crawl
+- UI remains navigable when the API is offline
 
 Important:
-GA4 sessions/users/conversions are not fabricated. They remain zero until the Google Analytics Data API/OAuth connection is configured.
+GitHub Pages runs the frontend only. Python crawler/API must run locally or on a separate backend host.
 
-Run:
+Local:
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
