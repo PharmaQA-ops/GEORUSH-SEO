@@ -1,5 +1,5 @@
 
-name: Build GEORUSH Self-Contained Windows App
+name: Build GEORUSH Self-Contained Windows App v18
 
 on:
   workflow_dispatch:
