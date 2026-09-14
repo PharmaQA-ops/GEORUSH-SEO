@@ -1,26 +1,40 @@
 # GEORUSH SEO
-Step 7 — Competitor Intelligence.
+Step 8 — Content Intelligence + Search Fix.
 
-Flat architecture.
-
-New module:
+Flat architecture:
+- index.html
+- styles.css
+- app.js
+- main.py
+- crawler.py
+- score.py
+- gsc.py
+- keywords.py
 - competitor.py
+- content.py
+- requirements.txt
 
-Capabilities:
-- Competitor domain inspection
-- HTTP status and response time
-- Title and meta description signals
-- H1 count
+Step 8:
+- Content analysis
 - Word count
-- Internal/external link counts
-- Target-vs-competitor comparison foundation
-- Up to 10 competitor URLs per comparison
+- Unique word count
+- Top terms
+- Keyword occurrence/density
+- Content issue detection
+- Content API
+
+Search fix:
+- Global frontend search
+- Search across crawled URL/title/description/H1
+- Search API
+- Enter-to-search
+- Table filtering
+- Search index populated by latest crawl
+- Works with dynamic crawl results
 
 Endpoints:
-POST /api/competitor/inspect
-POST /api/competitor/compare
-
-This step intentionally does not fabricate competitor keyword rankings, traffic, backlinks, domain authority, or search volume. Those require external data providers/APIs.
+POST /api/search
+POST /api/content/analyze
 
 Run:
 python -m venv .venv

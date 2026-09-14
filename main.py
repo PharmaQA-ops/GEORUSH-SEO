@@ -6,8 +6,11 @@ from score import calculate_score
 from gsc import demo_data, fetch_search_analytics
 from keywords import normalize_gsc_rows, summarize
 from competitor import inspect_competitor, compare_domains
+from content import analyze_text, content_issues
 
-app=FastAPI(title="GEORUSH SEO API",version="0.7.0")
+SEARCH_INDEX=[]
+
+app=FastAPI(title="GEORUSH SEO API",version="0.8.0")
 app.add_middleware(CORSMiddleware,allow_origins=["*"],allow_credentials=True,allow_methods=["*"],allow_headers=["*"])
 
 class CrawlRequest(BaseModel):
@@ -15,11 +18,12 @@ class CrawlRequest(BaseModel):
     max_pages:int=Field(default=25,ge=1,le=500)
 
 @app.get("/api/health")
-def health(): return {"status":"ok","service":"georush-seo-api","version":"0.7.0"}
+def health(): return {"status":"ok","service":"georush-seo-api","version":"0.8.0"}
 
 @app.post("/api/crawl")
 def start_crawl(req:CrawlRequest): result=crawl(req.url,req.max_pages)
     result["seo_score"]=calculate_score(result["results"])
+    SEARCH_INDEX=result["results"]
     return result
 
 
@@ -64,3 +68,29 @@ def competitor_inspect(req: CompetitorRequest):
 @app.post("/api/competitor/compare")
 def competitor_compare(req: CompetitorCompareRequest):
     return compare_domains(req.target, req.competitors[:10])
+
+
+class SearchRequest(BaseModel):
+    query: str
+    limit: int = Field(default=25, ge=1, le=500)
+
+@app.post("/api/search")
+def search(req: SearchRequest):
+    q=req.query.strip().lower()
+    if not q:
+        return {"query":req.query,"results":[]}
+    matches=[]
+    for item in SEARCH_INDEX:
+        hay=" ".join([str(item.get("url","")),str(item.get("title","")),
+                      str(item.get("description","")),str(item.get("h1",""))]).lower()
+        if q in hay:
+            matches.append(item)
+    return {"query":req.query,"results":matches[:req.limit]}
+
+class ContentRequest(BaseModel):
+    text: str
+    keyword: str = ""
+
+@app.post("/api/content/analyze")
+def content_analyze(req: ContentRequest):
+    return analyze_text(req.text, req.keyword)
