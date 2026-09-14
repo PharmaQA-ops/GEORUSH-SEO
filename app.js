@@ -1,4 +1,5 @@
-const API = window.GEORUSH_API || "http://127.0.0.1:8000";
+const configuredAPI = window.GEORUSH_API || "";
+const API = configuredAPI || ((window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://127.0.0.1:8000" : "");
 let LAST_CRAWL = null;
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
@@ -30,12 +31,12 @@ function initNavigation(){
   showPage(location.hash.replace('#','')||'dashboard',false);
   window.addEventListener('hashchange',()=>showPage(location.hash.replace('#',''),false));
 }
-async function checkAPI(){try{await api('/api/health');$('#apiStatus').textContent='API ONLINE';}catch{$('#apiStatus').textContent='API OFFLINE';}}
+async function checkAPI(){if(!API){$('#apiStatus').textContent='CLOUD API NOT CONFIGURED';return;}try{await api('/api/health');$('#apiStatus').textContent='API ONLINE';}catch{$('#apiStatus').textContent='API OFFLINE';}}
 function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
 function rowHtml(x){return `<tr><td class="url">${escapeHtml(x.url)}</td><td>${x.status_code??''}</td><td>${escapeHtml(x.title||'—')}</td><td>${x.word_count??0}</td><td>${x.response_time_ms??0} ms</td><td>${escapeHtml((x.issues||[]).join(', ')||'None')}</td></tr>`;}
 function renderResults(data){LAST_CRAWL=data; localStorage.setItem('GEORUSH_LAST_CRAWL',JSON.stringify(data));$('#score').textContent=data.seo_score?.total??'—';$('#pages').textContent=data.pages??0;$('#issues').textContent=data.issues??0;$('#status').textContent='COMPLETE';$('#rows').innerHTML=data.results?.length?data.results.map(rowHtml).join(''):'<tr><td colspan="6">No crawl results.</td></tr>';renderAllModules();}
 function loadSaved(){try{const x=JSON.parse(localStorage.getItem('GEORUSH_LAST_CRAWL')||'null');if(x&&Array.isArray(x.results))LAST_CRAWL=x;}catch{}}
-async function runCrawl(){const url=$('#site')?.value.trim();if(!url){$('#msg').textContent='Enter a website URL.';return;}$('#status').textContent='RUNNING';$('#msg').textContent='Crawling...';$('#runAudit').disabled=true;try{const data=await api('/api/crawl',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,max_pages:25})});renderResults(data);$('#msg').textContent='Audit complete.';}catch(e){$('#status').textContent='API OFFLINE';$('#msg').textContent='Crawl failed: '+(e.message||'start the Python API.');}finally{$('#runAudit').disabled=false;}}
+async function runCrawl(){const url=$('#site')?.value.trim();if(!url){$('#msg').textContent='Enter a website URL.';return;}$('#status').textContent='RUNNING';$('#msg').textContent='Crawling...';$('#runAudit').disabled=true;try{const data=await api('/api/crawl',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,max_pages:25})});renderResults(data);$('#msg').textContent='Audit complete.';}catch(e){$('#status').textContent='API OFFLINE';$('#msg').textContent=!API?'Cloud API is not configured yet. Deploy the API and set api-config.js.':'Crawl failed: '+(e.message||'API unavailable.');}finally{$('#runAudit').disabled=false;}}
 async function performSearch(){const q=$('#globalSearch')?.value.trim().toLowerCase();if(!q){$('#msg').textContent='Enter a search term.';return;}$('#searchBtn').disabled=true;$('#msg').textContent='Searching...';let results=[];let online=false;try{const d=await api('/api/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q,limit:50})});results=d.results||[];online=true;}catch{results=(LAST_CRAWL?.results||[]).filter(x=>`${x.url} ${x.title||''} ${x.description||''} ${x.h1||''} ${(x.issues||[]).join(' ')}`.toLowerCase().includes(q));}$('#rows').innerHTML=results.length?results.map(rowHtml).join(''):'<tr><td colspan="6">No matching results.</td></tr>';$('#msg').textContent=online?`${results.length} result(s) found.`:`${results.length} offline result(s) found.`;$('#searchBtn').disabled=false;showPage('dashboard');}
 
 function metric(label,value,sub=''){return `<div class="metric"><small>${escapeHtml(label)}</small><strong>${escapeHtml(value)}</strong><span>${escapeHtml(sub)}</span></div>`;}
