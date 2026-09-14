@@ -1,0 +1,9 @@
+GEORUSH v18 fixes the desktop startup failure.
+
+Root cause fixed:
+main.py registered @app.get("/") before the FastAPI app object was created.
+That caused the bundled API to crash during startup.
+
+v18 creates the FastAPI app first, then registers routes.
+
+The desktop launcher also writes georush-startup-error.txt if startup fails.

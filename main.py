@@ -1,8 +1,9 @@
 import os
-from fastapi.responses import FileResponse
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+
 from crawler import crawl
 from score import calculate_score
 from gsc import demo_data, fetch_search_analytics
@@ -12,14 +13,8 @@ from content import analyze_text
 from analytics import analytics_summary
 from ai import ask
 
-SEARCH_INDEX = []
+app = FastAPI(title="GEORUSH SEO API", version="0.18.0")
 
-@app.get("/")
-def desktop_home():
-    return FileResponse(os.path.join(os.path.dirname(__file__), "index.html"))
-
-
-app = FastAPI(title="GEORUSH SEO API", version="0.14.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,13 +23,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+SEARCH_INDEX = []
+
+@app.get("/")
+def desktop_home():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "index.html"))
+
 class CrawlRequest(BaseModel):
     url: str
     max_pages: int = Field(default=25, ge=1, le=500)
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "service": "georush-seo-api", "version": "0.14.0"}
+    return {"status": "ok", "service": "georush-seo-api", "version": "0.18.0"}
 
 @app.post("/api/crawl")
 def start_crawl(req: CrawlRequest):
