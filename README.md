@@ -1,31 +1,26 @@
 # GEORUSH SEO
-Step 6 — Keyword Intelligence.
+Step 7 — Competitor Intelligence.
 
-Flat architecture:
-- index.html
-- styles.css
-- app.js
-- main.py
-- crawler.py
-- score.py
-- gsc.py
-- keywords.py
-- requirements.txt
+Flat architecture.
 
-Keyword intelligence includes:
-- GSC keyword/page normalization
-- Search clicks, impressions, CTR and position
-- Search intent classification
-- Informational / Commercial / Transactional / Navigational intent
-- Opportunity scoring
-- Opportunity ranking
-- Intent distribution
-- Keyword-to-page mapping foundation
+New module:
+- competitor.py
 
-Endpoint:
-POST /api/keywords/analyze
+Capabilities:
+- Competitor domain inspection
+- HTTP status and response time
+- Title and meta description signals
+- H1 count
+- Word count
+- Internal/external link counts
+- Target-vs-competitor comparison foundation
+- Up to 10 competitor URLs per comparison
 
-This step deliberately does not invent search volume, keyword difficulty or CPC. Those require a real keyword-data provider and can be connected later.
+Endpoints:
+POST /api/competitor/inspect
+POST /api/competitor/compare
+
+This step intentionally does not fabricate competitor keyword rankings, traffic, backlinks, domain authority, or search volume. Those require external data providers/APIs.
 
 Run:
 python -m venv .venv

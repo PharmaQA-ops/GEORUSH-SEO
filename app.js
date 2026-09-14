@@ -52,3 +52,17 @@ async function analyzeKeywords(rows){
   });
   return await r.json();
 }
+
+async function inspectCompetitor(url){
+  const r=await fetch(`${API}/api/competitor/inspect`,{
+    method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})
+  });
+  return await r.json();
+}
+async function compareCompetitors(target,competitors){
+  const r=await fetch(`${API}/api/competitor/compare`,{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({target,competitors})
+  });
+  return await r.json();
+}
