@@ -1,20 +1,29 @@
-# GEORUSH SEO — Step 10
-AI Intelligence + complete navigation/search fix.
+# GEORUSH SEO — Step 10 FULL FIX
 
-Step 10 adds:
-- GEORUSH AI rules engine
+This version fixes the non-clickable navigation, search and backend syntax.
+
+Frontend:
+- Root index.html
+- Real button-based sidebar navigation
+- Working Dashboard / Keywords / Rankings / Competitors / Site Audit / Content / Backlinks / Analytics
+- Working search button and Enter key
+- Working Run Audit button
+
+Backend:
+- Correct FastAPI main.py
+- `/api/health`
+- `/api/crawl`
+- `/api/search`
 - `/api/ai/ask`
-- Robust delegated sidebar navigation
-- Dashboard / Keywords / Rankings / Competitors / Site Audit / Content / Backlinks / Analytics
-- Hash navigation and browser back/forward
-- Search fallback against latest crawl
-- UI remains navigable when the API is offline
+- GSC, keyword, competitor, content and analytics endpoints
 
-Important:
-GitHub Pages runs the frontend only. Python crawler/API must run locally or on a separate backend host.
-
-Local:
+Run locally:
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
+
+Then open the root index.html with Live Server.
+
+GitHub Pages:
+The frontend works there, but live crawling requires the Python API to be deployed separately.

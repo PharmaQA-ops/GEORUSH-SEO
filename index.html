@@ -1,51 +1,71 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GEORUSH SEO</title><link rel="stylesheet" href="styles.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GEORUSH SEO</title>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <aside class="sidebar">
   <div class="brand"><span>G</span><div><b>GEORUSH</b><small>SEO INTELLIGENCE</small></div></div>
-  <nav><a class="active">Dashboard</a><a>Keywords</a><a>Rankings</a><a>Competitors</a><a>Site Audit</a><a>Content</a><a>Backlinks</a><a>Analytics</a></nav>
-  <div class="ai"><b>GEORUSH AI</b><p>Ask the SEO analyst after connecting your data sources.</p></div>
+  <nav id="mainNav">
+    <button type="button" class="nav-link active" data-page="dashboard">Dashboard</button>
+    <button type="button" class="nav-link" data-page="keywords">Keywords</button>
+    <button type="button" class="nav-link" data-page="rankings">Rankings</button>
+    <button type="button" class="nav-link" data-page="competitors">Competitors</button>
+    <button type="button" class="nav-link" data-page="audit">Site Audit</button>
+    <button type="button" class="nav-link" data-page="content">Content</button>
+    <button type="button" class="nav-link" data-page="backlinks">Backlinks</button>
+    <button type="button" class="nav-link" data-page="analytics">Analytics</button>
+  </nav>
+  <div class="ai">
+    <b>GEORUSH AI</b>
+    <p>Ask the SEO analyst after connecting your data sources.</p>
+  </div>
 </aside>
+
 <main>
-<header><div><small>MARKETING / SEO</small><h1>SEO Command Center</h1><p>Your internal search intelligence platform.</p></div>
-<div class="actions"><input id="site" value="https://example.com" placeholder="https://your-site.com"><button onclick="runCrawl()">Run audit</button></div></header>
-<section class="cards">
-<div class="card score"><small>GEORUSH SEO SCORE</small><strong id="score">—</strong><span>Technical crawl health</span></div>
-<div class="card"><small>PAGES CRAWLED</small><strong id="pages">—</strong><span>Current audit</span></div>
-<div class="card"><small>ISSUES</small><strong id="issues">—</strong><span>Detected problems</span></div>
-<div class="card"><small>CRAWL STATUS</small><strong id="status">READY</strong><span>Open-source crawler</span></div>
+<header>
+  <div>
+    <small>MARKETING / SEO</small>
+    <h1 id="pageTitle">SEO Command Center</h1>
+    <p>Your internal search intelligence platform.</p>
+  </div>
+  <div class="actions">
+    <input id="globalSearch" type="search" placeholder="Search crawled URLs, titles, H1...">
+    <button id="searchBtn" type="button">Search</button>
+    <input id="site" value="https://example.com" placeholder="https://your-site.com">
+    <button id="runAudit" type="button">Run audit</button>
+  </div>
+</header>
+
+<section id="dashboard" data-section="dashboard">
+  <section class="cards">
+    <div class="card score"><small>GEORUSH SEO SCORE</small><strong id="score">—</strong><span>Technical crawl health</span></div>
+    <div class="card"><small>PAGES CRAWLED</small><strong id="pages">—</strong><span>Current audit</span></div>
+    <div class="card"><small>ISSUES</small><strong id="issues">—</strong><span>Detected problems</span></div>
+    <div class="card"><small>CRAWL STATUS</small><strong id="status">READY</strong><span id="apiStatus">Checking API...</span></div>
+  </section>
+
+  <section class="panel">
+    <div class="head"><div><h2>Technical SEO</h2><p>Live results from the GEORUSH crawler.</p></div><div id="msg"></div></div>
+    <table>
+      <thead><tr><th>URL</th><th>Status</th><th>Title</th><th>Words</th><th>Load</th><th>Issues</th></tr></thead>
+      <tbody id="rows"><tr><td colspan="6">Enter a site and run an audit.</td></tr></tbody>
+    </table>
+  </section>
 </section>
-<section class="panel"><div class="head"><div><h2>Technical SEO</h2><p>Live results from the GEORUSH crawler.</p></div><div id="msg"></div></div>
-<table><thead><tr><th>URL</th><th>Status</th><th>Title</th><th>Words</th><th>Load</th><th>Issues</th></tr></thead>
-<tbody id="rows"><tr><td colspan="6">Enter a site and run an audit.</td></tr></tbody></table></section>
+
+<section id="keywords" data-section="keywords" class="module"><h2>Keywords</h2><p>Keyword Intelligence — connect GSC to populate query, CTR, position and opportunity data.</p></section>
+<section id="rankings" data-section="rankings" class="module"><h2>Rankings</h2><p>Ranking intelligence module.</p></section>
+<section id="competitors" data-section="competitors" class="module"><h2>Competitors</h2><p>Competitor Intelligence module.</p></section>
+<section id="audit" data-section="audit" class="module"><h2>Site Audit</h2><p>Technical SEO audit module.</p></section>
+<section id="content" data-section="content" class="module"><h2>Content</h2><p>Content Intelligence module.</p></section>
+<section id="backlinks" data-section="backlinks" class="module"><h2>Backlinks</h2><p>Backlink Intelligence module.</p></section>
+<section id="analytics" data-section="analytics" class="module"><h2>Analytics</h2><p>Analytics and GA4 intelligence module.</p></section>
 </main>
+
 <script src="app.js"></script>
-<script id="GEORUSH-NAV-BOOTSTRAP">
-document.addEventListener("DOMContentLoaded",function(){
- const names={"dashboard":"dashboard","keywords":"keywords","rankings":"rankings","competitors":"competitors","site audit":"audit","content":"content","backlinks":"backlinks","analytics":"analytics"};
- document.querySelectorAll("a,button,li,div,span").forEach(function(el){
-  const t=(el.textContent||"").trim().toLowerCase();
-  if(names[t]&&!el.getAttribute("data-page")){el.setAttribute("data-page",names[t]);el.style.cursor="pointer";}
- });
-});
-</script>
-</body></html>
-<section id="dashboard" data-section="dashboard" class="georush-page-section" style="display:none"><h2>Dashboard</h2><p>GEORUSH Dashboard module.</p></section>
-
-<section id="keywords" data-section="keywords" class="georush-page-section" style="display:none"><h2>Keywords</h2><p>GEORUSH Keywords module.</p></section>
-
-<section id="rankings" data-section="rankings" class="georush-page-section" style="display:none"><h2>Rankings</h2><p>GEORUSH Rankings module.</p></section>
-
-<section id="competitors" data-section="competitors" class="georush-page-section" style="display:none"><h2>Competitors</h2><p>GEORUSH Competitors module.</p></section>
-
-<section id="audit" data-section="audit" class="georush-page-section" style="display:none"><h2>Site Audit</h2><p>GEORUSH Site Audit module.</p></section>
-
-<section id="content" data-section="content" class="georush-page-section" style="display:none"><h2>Content</h2><p>GEORUSH Content module.</p></section>
-
-<section id="backlinks" data-section="backlinks" class="georush-page-section" style="display:none"><h2>Backlinks</h2><p>GEORUSH Backlinks module.</p></section>
-
-<section id="analytics" data-section="analytics" class="georush-page-section" style="display:none"><h2>Analytics</h2><p>GEORUSH Analytics module.</p></section>
+</body>
+</html>

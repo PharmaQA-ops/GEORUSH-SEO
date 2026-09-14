@@ -1,80 +1,151 @@
 
 const API = window.GEORUSH_API || "http://127.0.0.1:8000";
 let LAST_CRAWL = null;
-function qs(s){return document.querySelector(s)}
-function qsa(s){return Array.from(document.querySelectorAll(s))}
-async function api(path,options={}){
- const r=await fetch(`${API}${path}`,options),t=await r.text(); let d;
- try{d=JSON.parse(t)}catch{d={detail:t}}
- if(!r.ok)throw new Error(d.detail||`HTTP ${r.status}`); return d;
+
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => Array.from(document.querySelectorAll(s));
+
+async function api(path, options = {}) {
+  const response = await fetch(`${API}${path}`, options);
+  const text = await response.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = {detail:text}; }
+  if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`);
+  return data;
 }
-function normalizePage(text){
- const x=(text||"").trim().toLowerCase();
- const map={"dashboard":"dashboard","keywords":"keywords","rankings":"rankings","competitors":"competitors",
- "site audit":"audit","audit":"audit","content":"content","backlinks":"backlinks","analytics":"analytics"};
- return map[x]||x.replace(/[^a-z0-9]+/g,"-");
+
+function showPage(page) {
+  if (page === "site-audit") page = "audit";
+  $$("[data-section]").forEach(s => s.hidden = true);
+  const target = $(`[data-section="${page}"]`);
+  if (target) target.hidden = false;
+
+  $$(".nav-link").forEach(b => b.classList.toggle("active", b.dataset.page === page));
+
+  const titles = {
+    dashboard:"SEO Command Center", keywords:"Keywords", rankings:"Rankings",
+    competitors:"Competitors", audit:"Site Audit", content:"Content",
+    backlinks:"Backlinks", analytics:"Analytics"
+  };
+  $("#pageTitle").textContent = titles[page] || "GEORUSH SEO";
+  history.replaceState(null, "", `#${page}`);
 }
-function navItems(){return qsa("nav a,nav button,.sidebar a,.sidebar button,.menu a,.menu button,[data-page],[role='navigation'] a")}
-function setActiveNav(a){navItems().forEach(x=>x.classList.remove("active"));if(a)a.classList.add("active")}
-function showPage(page){
- const aliases={ "site-audit":"audit" }; page=aliases[page]||page;
- qsa("[data-section],[data-page-section],.georush-page-section").forEach(s=>s.style.display="none");
- const target=qs(`[data-section="${page}"]`)||qs(`[data-page-section="${page}"]`)||qs(`#${page}`);
- if(target)target.style.display="";
- const title=qs("#pageTitle"); if(title)title.textContent=page==="audit"?"Site Audit":page[0].toUpperCase()+page.slice(1);
- if(!target&&page!=="dashboard"){
-  const host=qs("main")||qs(".main-content")||qs(".content")||document.body;
-  let p=qs("#georush-module-placeholder");
-  if(!p){p=document.createElement("section");p.id="georush-module-placeholder";p.style.cssText="padding:32px;margin:24px;border-radius:16px;background:#fff";host.appendChild(p)}
-  p.innerHTML=`<h2>${page==="audit"?"Site Audit":page[0].toUpperCase()+page.slice(1)}</h2><p>GEORUSH ${page} module.</p>`;p.style.display="";
- }
- window.scrollTo({top:0,behavior:"smooth"});
+
+function initNavigation() {
+  $$(".nav-link").forEach(button => {
+    button.addEventListener("click", () => showPage(button.dataset.page));
+  });
+
+  const initial = location.hash.replace("#","") || "dashboard";
+  showPage(initial);
+
+  window.addEventListener("hashchange", () => {
+    showPage(location.hash.replace("#","") || "dashboard");
+  });
 }
-function initSidebarNavigation(){
- document.addEventListener("click",e=>{
-  const el=e.target.closest("a,button,[data-page],li,.nav-item,.menu-item,.sidebar-item,div,span"); if(!el)return;
-  const sidebar=el.closest("nav,.sidebar,.menu,[role='navigation']"); if(!sidebar)return;
-  const page=normalizePage(el.dataset.page||el.getAttribute("aria-label")||el.textContent);
-  if(!["dashboard","keywords","rankings","competitors","audit","content","backlinks","analytics"].includes(page))return;
-  e.preventDefault();e.stopPropagation();setActiveNav(el);showPage(page);
-  try{history.pushState({page},"",`#${page}`)}catch(_){}
- },true);
+
+async function checkAPI() {
+  try {
+    await api("/api/health");
+    $("#apiStatus").textContent = "API ONLINE";
+    $("#status").textContent = "READY";
+  } catch {
+    $("#apiStatus").textContent = "API OFFLINE";
+    $("#status").textContent = "DEMO";
+  }
 }
-function initHash(){const p=(location.hash||"#dashboard").slice(1)||"dashboard";showPage(p);const n=navItems().find(x=>normalizePage(x.dataset.page||x.textContent)===p);if(n)setActiveNav(n)}
-window.addEventListener("popstate",initHash);
-async function checkAPI(){
- try{await api("/api/health");const e=qs("#apiStatus");if(e){e.textContent="API ONLINE";e.className="online"}}catch(_){const e=qs("#apiStatus");if(e){e.textContent="DEMO / API OFFLINE";e.className="offline"}}
+
+function renderResults(data) {
+  LAST_CRAWL = data;
+  $("#score").textContent = data.seo_score?.total ?? data.health ?? "—";
+  $("#pages").textContent = data.pages ?? 0;
+  $("#issues").textContent = data.issues ?? 0;
+  $("#status").textContent = "COMPLETE";
+
+  const rows = $("#rows");
+  if (!data.results?.length) {
+    rows.innerHTML = '<tr><td colspan="6">No crawl results.</td></tr>';
+    return;
+  }
+
+  rows.innerHTML = data.results.map(x => `
+    <tr>
+      <td class="url">${escapeHtml(x.url)}</td>
+      <td>${x.status_code ?? ""}</td>
+      <td>${escapeHtml(x.title || "—")}</td>
+      <td>${x.word_count ?? 0}</td>
+      <td>${x.response_time_ms ?? 0} ms</td>
+      <td>${escapeHtml((x.issues || []).join(", ") || "None")}</td>
+    </tr>
+  `).join("");
 }
-function initTableSearch(){
- qsa('input[type="search"],input[placeholder*="Search" i],input[id*="search" i]').forEach(i=>{
-  if(i.dataset.searchReady)return;i.dataset.searchReady="1";
-  i.addEventListener("input",()=>{const t=i.value.toLowerCase();qsa("table tbody tr").forEach(r=>r.style.display=!t||r.innerText.toLowerCase().includes(t)?"":"none")})
- })
+
+async function runCrawl() {
+  const url = $("#site").value.trim();
+  if (!url) {
+    $("#msg").textContent = "Enter a website URL.";
+    return;
+  }
+
+  $("#status").textContent = "RUNNING";
+  $("#msg").textContent = "Crawling...";
+
+  try {
+    const data = await api("/api/crawl", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({url, max_pages:25})
+    });
+    renderResults(data);
+    $("#msg").textContent = "Audit complete.";
+  } catch (error) {
+    $("#status").textContent = "API OFFLINE";
+    $("#msg").textContent = "Start the Python API to run a live audit.";
+  }
 }
-function renderResults(d){
- LAST_CRAWL=d; const score=d.seo_score?.total??d.health??0;
- if(qs("#crawlHealth"))qs("#crawlHealth").textContent=score;
- if(qs("#pages"))qs("#pages").textContent=d.pages??0;
- if(qs("#issues"))qs("#issues").textContent=d.issues??0;
- const b=qs("#resultsBody")||document.querySelector("tbody");
- if(b&&d.results)b.innerHTML=d.results.map(x=>`<tr><td>${x.url}</td><td>${x.status_code??""}</td><td>${x.title||"—"}</td><td>${x.word_count??0}</td><td>${x.response_time_ms??""}</td><td>${(x.issues||[]).join(", ")||"None"}</td></tr>`).join("");
+
+async function performSearch() {
+  const query = $("#globalSearch").value.trim().toLowerCase();
+  if (!query) {
+    $("#msg").textContent = "Enter a search term.";
+    return;
+  }
+
+  let results = [];
+  try {
+    const data = await api("/api/search", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({query, limit:50})
+    });
+    results = data.results || [];
+  } catch {
+    results = (LAST_CRAWL?.results || []).filter(x => {
+      const hay = `${x.url} ${x.title || ""} ${x.description || ""} ${x.h1 || ""} ${(x.issues || []).join(" ")}`.toLowerCase();
+      return hay.includes(query);
+    });
+  }
+
+  $("#rows").innerHTML = results.length
+    ? results.map(x => `<tr><td class="url">${escapeHtml(x.url)}</td><td>${x.status_code ?? ""}</td><td>${escapeHtml(x.title || "—")}</td><td>${x.word_count ?? 0}</td><td>${x.response_time_ms ?? 0} ms</td><td>${escapeHtml((x.issues || []).join(", ") || "None")}</td></tr>`).join("")
+    : '<tr><td colspan="6">No matching results.</td></tr>';
+
+  $("#msg").textContent = `${results.length} result(s) found.`;
 }
-async function startCrawl(){
- const url=(qs("#siteUrl")||qs("#url"))?.value?.trim(),limit=parseInt((qs("#pageLimit")||qs("#limit"))?.value||25);
- if(!url){alert("Enter a website URL.");return}
- try{renderResults(await api("/api/crawl",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url,max_pages:limit})}))}
- catch(_){alert("Start the GEORUSH API locally. GitHub Pages can serve the UI but cannot run Python.")}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[c]));
 }
-async function searchSite(query,limit=25){
- try{const d=await api("/api/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({query,limit})});return d.results||[]}
- catch(_){const q=query.toLowerCase();return(LAST_CRAWL?.results||[]).filter(x=>`${x.url} ${x.title||""} ${x.description||""} ${x.h1||""}`.toLowerCase().includes(q)).slice(0,limit)}
-}
-async function runAI(question){
- try{return await api("/api/ai/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question,context:LAST_CRAWL||{}}))}
- catch(_){return{summary:"GEORUSH AI demo mode. Connect the API for live analysis.",insights:["Run a site audit.","Connect GSC.","Connect Analytics."]}}
-}
-document.addEventListener("DOMContentLoaded",()=>{
- checkAPI();initTableSearch();initSidebarNavigation();initHash();
- const b=qs("#startCrawl")||qs("#startBtn");if(b)b.addEventListener("click",startCrawl);
- const s=qs("#globalSearch")||qs("#searchInput");if(s)s.addEventListener("keydown",async e=>{if(e.key==="Enter"){const r=await searchSite(s.value.trim());const b=qs("#resultsBody");if(b)b.innerHTML=r.map(x=>`<tr><td>${x.url}</td><td>${x.title||"—"}</td><td>${x.word_count??0}</td><td>${(x.issues||[]).join(", ")||"None"}</td></tr>`).join("")}});
+
+document.addEventListener("DOMContentLoaded", () => {
+  initNavigation();
+  checkAPI();
+
+  $("#runAudit").addEventListener("click", runCrawl);
+  $("#searchBtn").addEventListener("click", performSearch);
+  $("#globalSearch").addEventListener("keydown", e => {
+    if (e.key === "Enter") performSearch();
+  });
 });
