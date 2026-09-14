@@ -1,19 +1,38 @@
 
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+from pathlib import Path
 
-datas = collect_data_files("webview")
+root = Path(SPECPATH)
 
+hidden = [
+    "uvicorn",
+    "uvicorn.logging",
+    "uvicorn.loops.auto",
+    "uvicorn.protocols.http.auto",
+    "uvicorn.protocols.websockets.auto",
+    "uvicorn.lifespan.on",
+    "webview",
+]
+
+hidden += collect_submodules("uvicorn")
+hidden += collect_submodules("webview")
+
+datas = [
+    (str(root / "index.html"), "."),
+    (str(root / "styles.css"), "."),
+    (str(root / "app.js"), "."),
+    (str(root / "api-config.js"), "."),
+]
+
+# Include project modules as data is unnecessary; PyInstaller discovers imports
+# from main.py and georush_desktop.py. The frontend files are explicitly bundled.
 a = Analysis(
-    ["georush_live_app.py"],
-    pathex=[],
+    ["georush_desktop.py"],
+    pathex=[str(root)],
     binaries=[],
     datas=datas,
-    hiddenimports=[
-        "webview",
-        "webview.platforms.edgechromium",
-        "webview.platforms.winforms",
-    ],
+    hiddenimports=hidden,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -22,6 +41,7 @@ a = Analysis(
 )
 
 pyz = PYZ(a.pure)
+
 exe = EXE(
     pyz,
     a.scripts,

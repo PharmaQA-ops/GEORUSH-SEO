@@ -1,1 +1,8 @@
+fastapi
+uvicorn[standard]
 pywebview>=5.4
+requests
+beautifulsoup4
+lxml
+pydantic
+python-dotenv

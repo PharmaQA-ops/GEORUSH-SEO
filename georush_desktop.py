@@ -1,80 +1,62 @@
 
 import os
 import sys
+import threading
 import time
 import socket
-import subprocess
-import threading
+
+import uvicorn
 import webview
 
 HOST = "127.0.0.1"
 PORT = 8000
-ROOT = os.path.dirname(os.path.abspath(__file__))
 
-api_process = None
+def resource_root():
+    # PyInstaller --onefile extracts bundled resources here.
+    if getattr(sys, "frozen", False):
+        return sys._MEIPASS
+    return os.path.dirname(os.path.abspath(__file__))
 
-def port_open(host, port):
-    s = socket.socket()
-    s.settimeout(0.3)
-    try:
-        s.connect((host, port))
-        return True
-    except OSError:
-        return False
-    finally:
-        s.close()
-
-def start_api():
-    global api_process
-    if port_open(HOST, PORT):
-        return
-
-    python = sys.executable
-    main_py = os.path.join(ROOT, "main.py")
-
-    api_process = subprocess.Popen(
-        [python, "-m", "uvicorn", "main:app",
-         "--host", HOST, "--port", str(PORT)],
-        cwd=ROOT,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
-    )
-
-def wait_for_api():
-    for _ in range(50):
-        if port_open(HOST, PORT):
-            return True
-        time.sleep(0.2)
+def wait_for_port(host, port, timeout=15):
+    end = time.time() + timeout
+    while time.time() < end:
+        try:
+            with socket.create_connection((host, port), timeout=0.3):
+                return True
+        except OSError:
+            time.sleep(0.15)
     return False
 
-def on_closed():
-    global api_process
-    if api_process and api_process.poll() is None:
-        try:
-            api_process.terminate()
-        except Exception:
-            pass
+def start_api():
+    # main.py is bundled as a Python module by PyInstaller.
+    import main
+    config = uvicorn.Config(
+        main.app,
+        host=HOST,
+        port=PORT,
+        log_level="warning",
+        access_log=False,
+    )
+    server = uvicorn.Server(config)
+    server.install_signal_handlers = lambda: None
+    server.run()
 
 def main():
     threading.Thread(target=start_api, daemon=True).start()
 
-    if not wait_for_api():
-        # The page can still load and explain that the API is unavailable.
-        pass
+    if not wait_for_port(HOST, PORT):
+        raise RuntimeError("GEORUSH API could not start.")
 
-    webview.create_window(
+    window = webview.create_window(
         "GEORUSH SEO",
-        f"http://{HOST}:{PORT}",
+        f"http://{HOST}:{PORT}/",
         width=1440,
         height=900,
         min_size=(1100, 700),
         resizable=True,
         background_color="#0b1118",
-        text_select=True
     )
-    webview.start(debug=False)
-    on_closed()
+    webview.start()
 
 if __name__ == "__main__":
     main()

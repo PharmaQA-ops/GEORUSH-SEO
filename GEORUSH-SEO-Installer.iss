@@ -1,11 +1,11 @@
 
 #define MyAppName "GEORUSH SEO"
-#define MyAppVersion "16.0.0"
+#define MyAppVersion "17.0.0"
 #define MyAppPublisher "GEORUSH"
 #define MyAppExeName "GEORUSH-SEO.exe"
 
 [Setup]
-AppId={{D8A9F5E4-4D3C-4C9E-A3A6-9F0B9E5C1616}
+AppId={{D8A9F5E4-4D3C-4C9E-A3A6-9F0B9E5C1717}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
