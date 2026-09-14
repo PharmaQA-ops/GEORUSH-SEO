@@ -1,26 +1,38 @@
 # GEORUSH SEO
 
-GEORUSH SEO — proprietary internal SEO intelligence platform.
+Step 3 — Technical SEO Engine.
 
-## Step 2 — Crawler
+Flat repository architecture:
+- index.html
+- styles.css
+- app.js
+- main.py
+- crawler.py
+- requirements.txt
 
-Everything is kept at repository root for the current prototype.
+Technical checks include:
+- HTTP errors
+- missing/long titles
+- duplicate titles
+- missing/long descriptions
+- duplicate descriptions
+- H1 structure
+- canonical consistency
+- noindex
+- thin content
+- image ALT
+- mixed content
+- redirects
+- orphan pages
+- page depth
+- severity classification
+- technical health score
 
-Frontend:
-- `index.html`
-- `styles.css`
-- `app.js`
+Run locally:
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
 
-Backend:
-- `main.py`
-- `crawler.py`
-- `requirements.txt`
-
-Local API:
-`http://127.0.0.1:8000`
-
-Health:
-`http://127.0.0.1:8000/api/health`
-
-GitHub Pages:
-`https://pharmaqa-ops.github.io/GEORUSH-SEO/`
+API health:
+http://127.0.0.1:8000/api/health

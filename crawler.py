@@ -1,153 +1,134 @@
-import re
-import time
-import urllib.parse
-import urllib.robotparser
-from collections import deque
+import re, time, urllib.parse, urllib.robotparser
+from collections import deque, Counter, defaultdict
 from typing import Dict, List, Set
 import httpx
 from bs4 import BeautifulSoup
 
-ISSUES = {
-    "HTTP_ERROR", "MISSING_TITLE", "TITLE_TOO_LONG", "MISSING_DESCRIPTION",
-    "DESCRIPTION_TOO_LONG", "MISSING_H1", "MULTIPLE_H1", "MISSING_CANONICAL",
-    "NOINDEX", "THIN_CONTENT", "MISSING_IMAGE_ALT", "REDIRECT", "CRAWL_ERROR"
-}
-
-def normalize_url(url: str) -> str:
+def normalize_url(url):
     p = urllib.parse.urlsplit(url)
-    scheme = p.scheme or "https"
-    host = p.netloc.lower()
-    path = p.path or "/"
-    if path != "/" and path.endswith("/"):
-        path = path[:-1]
-    return urllib.parse.urlunsplit((scheme, host, path, p.query, ""))
+    return urllib.parse.urlunsplit((p.scheme or "https", p.netloc.lower(), p.path or "/", p.query, ""))
 
-def is_internal(url: str, root_host: str) -> bool:
-    try:
-        return urllib.parse.urlsplit(url).netloc.lower() == root_host
-    except Exception:
-        return False
+def internal(url, host):
+    try: return urllib.parse.urlsplit(url).netloc.lower() == host
+    except: return False
 
-def parse_page(url: str, html: str) -> Dict:
-    soup = BeautifulSoup(html, "lxml")
-    title = soup.title.get_text(" ", strip=True) if soup.title else ""
-    desc_tag = soup.find("meta", attrs={"name": re.compile("^description$", re.I)})
-    description = desc_tag.get("content", "").strip() if desc_tag else ""
-    h1s = [x.get_text(" ", strip=True) for x in soup.find_all("h1")]
-    canonical_tag = soup.find("link", rel=lambda v: v and "canonical" in v)
-    canonical = canonical_tag.get("href", "").strip() if canonical_tag else ""
-    robots_tag = soup.find("meta", attrs={"name": re.compile("^robots$", re.I)})
-    robots = robots_tag.get("content", "").lower() if robots_tag else ""
-    text = soup.get_text(" ", strip=True)
-    words = len(text.split())
-    images = soup.find_all("img")
-    missing_alt = sum(1 for img in images if not img.get("alt"))
-    links = []
-    internal = external = 0
-    for a in soup.find_all("a", href=True):
-        href = urllib.parse.urljoin(url, a["href"])
-        if href.startswith(("http://", "https://")):
-            links.append(href)
-            if is_internal(href, urllib.parse.urlsplit(url).netloc.lower()):
-                internal += 1
-            else:
-                external += 1
+def severity(issue):
+    return {
+        "HTTP_ERROR":"Critical","CRAWL_ERROR":"Critical","BROKEN_INTERNAL_LINK":"Critical",
+        "NOINDEX":"High","CANONICAL_MISMATCH":"High","MISSING_CANONICAL":"High",
+        "REDIRECT_CHAIN":"High","REDIRECT":"Medium","MISSING_TITLE":"High",
+        "TITLE_TOO_LONG":"Medium","DUPLICATE_TITLE":"Medium",
+        "MISSING_DESCRIPTION":"Medium","DESCRIPTION_TOO_LONG":"Low",
+        "DUPLICATE_DESCRIPTION":"Medium","MISSING_H1":"Medium","MULTIPLE_H1":"Low",
+        "THIN_CONTENT":"Medium","MISSING_IMAGE_ALT":"Low","ORPHAN_PAGE":"High",
+        "DEEP_PAGE":"Medium","MIXED_CONTENT":"Medium"
+    }.get(issue,"Info")
 
-    issues = []
+def parse(url, html, root_host):
+    soup=BeautifulSoup(html,"lxml")
+    title=soup.title.get_text(" ",strip=True) if soup.title else ""
+    d=soup.find("meta",attrs={"name":re.compile("^description$",re.I)})
+    desc=d.get("content","").strip() if d else ""
+    h1=soup.find_all("h1")
+    can=soup.find("link",rel=lambda v:v and "canonical" in v)
+    canonical=urllib.parse.urljoin(url,can.get("href","").strip()) if can else ""
+    r=soup.find("meta",attrs={"name":re.compile("^robots$",re.I)})
+    robots=r.get("content","").lower() if r else ""
+    text=soup.get_text(" ",strip=True)
+    words=len(text.split())
+    imgs=soup.find_all("img")
+    missing_alt=sum(1 for x in imgs if not x.get("alt"))
+    links=[]
+    internal_links=[]
+    external_links=[]
+    for a in soup.find_all("a",href=True):
+        u=urllib.parse.urljoin(url,a["href"])
+        if u.startswith(("http://","https://")):
+            links.append(normalize_url(u))
+            (internal_links if internal(u,root_host) else external_links).append(normalize_url(u))
+    issues=[]
     if not title: issues.append("MISSING_TITLE")
-    if len(title) > 60: issues.append("TITLE_TOO_LONG")
-    if not description: issues.append("MISSING_DESCRIPTION")
-    if len(description) > 160: issues.append("DESCRIPTION_TOO_LONG")
-    if len(h1s) == 0: issues.append("MISSING_H1")
-    if len(h1s) > 1: issues.append("MULTIPLE_H1")
+    elif len(title)>60: issues.append("TITLE_TOO_LONG")
+    if not desc: issues.append("MISSING_DESCRIPTION")
+    elif len(desc)>160: issues.append("DESCRIPTION_TOO_LONG")
+    if not h1: issues.append("MISSING_H1")
+    if len(h1)>1: issues.append("MULTIPLE_H1")
     if not canonical: issues.append("MISSING_CANONICAL")
+    elif normalize_url(canonical)!=normalize_url(url): issues.append("CANONICAL_MISMATCH")
     if "noindex" in robots: issues.append("NOINDEX")
-    if words < 300: issues.append("THIN_CONTENT")
+    if words<300: issues.append("THIN_CONTENT")
     if missing_alt: issues.append("MISSING_IMAGE_ALT")
+    if url.startswith("https://"):
+        for rtag in soup.find_all(src=True):
+            if str(rtag.get("src","")).startswith("http://"): issues.append("MIXED_CONTENT"); break
+    return dict(url=url,title=title,description=desc,h1_count=len(h1),h1=h1[0].get_text(" ",strip=True) if h1 else "",
+                canonical=canonical,robots=robots,word_count=words,image_count=len(imgs),
+                missing_alt=missing_alt,internal_links=len(internal_links),external_links=len(external_links),
+                links=links,issues=issues)
 
-    return {
-        "url": url, "title": title, "description": description,
-        "h1": h1s[0] if h1s else "", "h1_count": len(h1s),
-        "canonical": canonical, "robots": robots, "word_count": words,
-        "image_count": len(images), "missing_alt": missing_alt,
-        "internal_links": internal, "external_links": external,
-        "links": links, "issues": issues
-    }
-
-def crawl(root_url: str, max_pages: int = 25) -> Dict:
-    root_url = normalize_url(root_url)
-    parsed = urllib.parse.urlsplit(root_url)
-    host = parsed.netloc.lower()
-
-    rp = urllib.robotparser.RobotFileParser()
-    robots_url = urllib.parse.urlunsplit((parsed.scheme, host, "/robots.txt", "", ""))
-    robots_available = False
-    try:
-        rp.set_url(robots_url)
-        rp.read()
-        robots_available = True
-    except Exception:
-        pass
-
-    queue = deque([root_url])
-    seen: Set[str] = set()
-    results: List[Dict] = []
-
-    with httpx.Client(follow_redirects=True, timeout=15, headers={"User-Agent": "GEORUSH-SEO-Crawler/0.2"}) as client:
-        while queue and len(results) < max_pages:
-            url = queue.popleft()
-            url = normalize_url(url)
-            if url in seen or not is_internal(url, host):
-                continue
+def crawl(root_url,max_pages=25):
+    root_url=normalize_url(root_url); host=urllib.parse.urlsplit(root_url).netloc.lower()
+    rp=urllib.robotparser.RobotFileParser()
+    robots_url=urllib.parse.urljoin(root_url,"/robots.txt")
+    robots_available=False
+    try: rp.set_url(robots_url); rp.read(); robots_available=True
+    except: pass
+    q=deque([root_url]); seen=set(); results=[]
+    incoming=Counter()
+    with httpx.Client(follow_redirects=True,timeout=15,headers={"User-Agent":"GEORUSH-SEO-Crawler/0.3"}) as c:
+        while q and len(results)<max_pages:
+            url=normalize_url(q.popleft())
+            if url in seen or not internal(url,host): continue
             seen.add(url)
-
-            if robots_available and not rp.can_fetch("GEORUSH-SEO-Crawler", url):
-                continue
-
-            start = time.perf_counter()
+            if robots_available and not rp.can_fetch("GEORUSH-SEO-Crawler",url): continue
+            t=time.perf_counter()
             try:
-                response = client.get(url)
-                elapsed = round((time.perf_counter() - start) * 1000)
-                final_url = normalize_url(str(response.url))
-                item = {
-                    "url": url,
-                    "status_code": response.status_code,
-                    "response_time_ms": elapsed,
-                    "redirect": final_url != url,
-                }
-                if response.is_success and "text/html" in response.headers.get("content-type", "").lower():
-                    item.update(parse_page(final_url, response.text))
-                    if item["redirect"]:
-                        item["issues"].append("REDIRECT")
-                    for link in item.pop("links", []):
-                        n = normalize_url(link)
-                        if is_internal(n, host) and n not in seen and len(seen) < max_pages * 4:
-                            queue.append(n)
+                resp=c.get(url); ms=round((time.perf_counter()-t)*1000)
+                final=normalize_url(str(resp.url))
+                if resp.is_success and "text/html" in resp.headers.get("content-type","").lower():
+                    item=parse(final,resp.text,host)
+                    item.update(status_code=resp.status_code,response_time_ms=ms,redirect=final!=url)
+                    if final!=url: item["issues"].append("REDIRECT")
+                    for link in item["links"]:
+                        if internal(link,host):
+                            incoming[link]+=1
+                            if link not in seen and len(seen)+len(q)<max_pages*4: q.append(link)
+                    item["links"]=None
                 else:
-                    item.update({
-                        "title": "", "description": "", "h1": "", "h1_count": 0,
-                        "canonical": "", "robots": "", "word_count": 0,
-                        "image_count": 0, "missing_alt": 0, "internal_links": 0,
-                        "external_links": 0, "issues": ["HTTP_ERROR"]
-                    })
+                    item=dict(url=url,title="",description="",h1="",h1_count=0,canonical="",robots="",
+                              word_count=0,image_count=0,missing_alt=0,internal_links=0,external_links=0,
+                              status_code=resp.status_code,response_time_ms=ms,redirect=final!=url,
+                              links=None,issues=["HTTP_ERROR"])
                 results.append(item)
-            except Exception as exc:
-                results.append({
-                    "url": url, "status_code": 0, "response_time_ms": 0,
-                    "redirect": False, "title": "", "description": "", "h1": "",
-                    "h1_count": 0, "canonical": "", "robots": "", "word_count": 0,
-                    "image_count": 0, "missing_alt": 0, "internal_links": 0,
-                    "external_links": 0, "issues": ["CRAWL_ERROR"], "error": str(exc)
-                })
-
-    issue_count = sum(len(x.get("issues", [])) for x in results)
-    health = max(0, 100 - min(100, issue_count * 5))
-    return {
-        "root_url": root_url,
-        "robots_available": robots_available,
-        "sitemap_count": 0,
-        "pages": len(results),
-        "health": health,
-        "issues": issue_count,
-        "results": results
-    }
+            except Exception as e:
+                results.append(dict(url=url,title="",description="",h1="",h1_count=0,canonical="",robots="",
+                    word_count=0,image_count=0,missing_alt=0,internal_links=0,external_links=0,
+                    status_code=0,response_time_ms=0,redirect=False,links=None,
+                    issues=["CRAWL_ERROR"],error=str(e)))
+    # Duplicate detection
+    for field, issue in [("title","DUPLICATE_TITLE"),("description","DUPLICATE_DESCRIPTION")]:
+        groups=defaultdict(list)
+        for x in results:
+            val=(x.get(field) or "").strip().lower()
+            if val: groups[val].append(x)
+        for urls in groups.values():
+            if len(urls)>1:
+                for x in urls: x["issues"].append(issue)
+    crawled={x["url"] for x in results}
+    for x in results:
+        if x["url"]!=root_url and incoming[x["url"]]==0: x["issues"].append("ORPHAN_PAGE")
+        depth=max(0,len(urllib.parse.urlsplit(x["url"]).path.strip("/").split("/")) if urllib.parse.urlsplit(x["url"]).path.strip("/") else 0)
+        x["page_depth"]=depth
+        if depth>=4: x["issues"].append("DEEP_PAGE")
+        x["severity_counts"]=dict(Counter(severity(i) for i in x["issues"]))
+        x["issue_count"]=len(x["issues"])
+    total=sum(x["issue_count"] for x in results)
+    critical=sum(1 for x in results for i in x["issues"] if severity(i)=="Critical")
+    high=sum(1 for x in results for i in x["issues"] if severity(i)=="High")
+    health=max(0,round(100-(critical*12+high*7+max(0,total-critical-high)*3)))
+    return {"root_url":root_url,"robots_available":robots_available,"sitemap_count":0,
+            "pages":len(results),"health":health,"issues":total,
+            "severity":{"Critical":critical,"High":high,
+                        "Medium":sum(1 for x in results for i in x["issues"] if severity(i)=="Medium"),
+                        "Low":sum(1 for x in results for i in x["issues"] if severity(i)=="Low")},
+            "results":results}
