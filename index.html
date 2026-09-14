@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GEORUSH SEO</title><link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<aside class="sidebar">
+  <div class="brand"><span>G</span><div><b>GEORUSH</b><small>SEO INTELLIGENCE</small></div></div>
+  <nav><a class="active">Dashboard</a><a>Keywords</a><a>Rankings</a><a>Competitors</a><a>Site Audit</a><a>Content</a><a>Backlinks</a><a>Analytics</a></nav>
+  <div class="ai"><b>GEORUSH AI</b><p>Ask the SEO analyst after connecting your data sources.</p></div>
+</aside>
+<main>
+<header><div><small>MARKETING / SEO</small><h1>SEO Command Center</h1><p>Your internal search intelligence platform.</p></div>
+<div class="actions"><input id="site" value="https://example.com" placeholder="https://your-site.com"><button onclick="runCrawl()">Run audit</button></div></header>
+<section class="cards">
+<div class="card score"><small>GEORUSH SEO SCORE</small><strong id="score">—</strong><span>Technical crawl health</span></div>
+<div class="card"><small>PAGES CRAWLED</small><strong id="pages">—</strong><span>Current audit</span></div>
+<div class="card"><small>ISSUES</small><strong id="issues">—</strong><span>Detected problems</span></div>
+<div class="card"><small>CRAWL STATUS</small><strong id="status">READY</strong><span>Open-source crawler</span></div>
+</section>
+<section class="panel"><div class="head"><div><h2>Technical SEO</h2><p>Live results from the GEORUSH crawler.</p></div><div id="msg"></div></div>
+<table><thead><tr><th>URL</th><th>Status</th><th>Title</th><th>Words</th><th>Load</th><th>Issues</th></tr></thead>
+<tbody id="rows"><tr><td colspan="6">Enter a site and run an audit.</td></tr></tbody></table></section>
+</main>
+<script src="app.js"></script>
+</body></html>
