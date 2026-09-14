@@ -7,10 +7,11 @@ from gsc import demo_data, fetch_search_analytics
 from keywords import normalize_gsc_rows, summarize
 from competitor import inspect_competitor, compare_domains
 from content import analyze_text, content_issues
+from analytics import analytics_summary
 
 SEARCH_INDEX=[]
 
-app=FastAPI(title="GEORUSH SEO API",version="0.8.0")
+app=FastAPI(title="GEORUSH SEO API",version="0.9.0")
 app.add_middleware(CORSMiddleware,allow_origins=["*"],allow_credentials=True,allow_methods=["*"],allow_headers=["*"])
 
 class CrawlRequest(BaseModel):
@@ -18,7 +19,7 @@ class CrawlRequest(BaseModel):
     max_pages:int=Field(default=25,ge=1,le=500)
 
 @app.get("/api/health")
-def health(): return {"status":"ok","service":"georush-seo-api","version":"0.8.0"}
+def health(): return {"status":"ok","service":"georush-seo-api","version":"0.9.0"}
 
 @app.post("/api/crawl")
 def start_crawl(req:CrawlRequest): result=crawl(req.url,req.max_pages)
@@ -94,3 +95,8 @@ class ContentRequest(BaseModel):
 @app.post("/api/content/analyze")
 def content_analyze(req: ContentRequest):
     return analyze_text(req.text, req.keyword)
+
+
+@app.get("/api/analytics/summary")
+def analytics():
+    return analytics_summary()

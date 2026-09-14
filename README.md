@@ -1,40 +1,24 @@
 # GEORUSH SEO
-Step 8 — Content Intelligence + Search Fix.
+Step 9 — Analytics + working sidebar navigation.
 
-Flat architecture:
-- index.html
-- styles.css
-- app.js
-- main.py
-- crawler.py
-- score.py
-- gsc.py
-- keywords.py
-- competitor.py
-- content.py
-- requirements.txt
+Flat architecture.
 
-Step 8:
-- Content analysis
-- Word count
-- Unique word count
-- Top terms
-- Keyword occurrence/density
-- Content issue detection
-- Content API
+Analytics foundation:
+- 28-day analytics summary
+- Sessions/users/conversions placeholders for GA4
+- GSC clicks/impressions/CTR/position compatibility
+- `/api/analytics/summary`
+- GA4 environment-variable placeholders
 
-Search fix:
-- Global frontend search
-- Search across crawled URL/title/description/H1
-- Search API
-- Enter-to-search
-- Table filtering
-- Search index populated by latest crawl
-- Works with dynamic crawl results
+Navigation fix:
+- Sidebar items are clickable
+- Dashboard, Keywords, Rankings, Competitors, Site Audit, Content, Backlinks and Analytics use in-page sections/hash navigation
+- Active navigation state
+- Browser back/forward support
+- No separate HTML pages required
 
-Endpoints:
-POST /api/search
-POST /api/content/analyze
+Important:
+GA4 sessions/users/conversions are not fabricated. They remain zero until the Google Analytics Data API/OAuth connection is configured.
 
 Run:
 python -m venv .venv
