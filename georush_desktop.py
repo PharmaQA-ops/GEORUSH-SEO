@@ -5,6 +5,7 @@ import time
 import socket
 import threading
 import traceback
+import tempfile
 
 import uvicorn
 import webview
@@ -12,7 +13,18 @@ import webview
 HOST = "127.0.0.1"
 PORT = 8000
 
-def wait_for_port(host, port, timeout=20):
+def log_path():
+    return os.path.join(tempfile.gettempdir(), "GEORUSH-SEO-startup-error.txt")
+
+def write_error(exc):
+    try:
+        with open(log_path(), "w", encoding="utf-8") as f:
+            traceback.print_exc(file=f)
+            f.write("\nException: " + repr(exc) + "\n")
+    except Exception:
+        pass
+
+def wait_for_port(host, port, timeout=30):
     end = time.time() + timeout
     while time.time() < end:
         try:
@@ -35,24 +47,17 @@ def start_api():
         server = uvicorn.Server(config)
         server.install_signal_handlers = lambda: None
         server.run()
-    except Exception:
-        log = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "georush-startup-error.txt")
-        try:
-            with open(log, "w", encoding="utf-8") as f:
-                traceback.print_exc(file=f)
-        except Exception:
-            pass
+    except Exception as exc:
+        write_error(exc)
 
 def main():
-    thread = threading.Thread(target=start_api, daemon=True)
-    thread.start()
+    threading.Thread(target=start_api, daemon=True).start()
 
     if not wait_for_port(HOST, PORT):
-        log = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "georush-startup-error.txt")
-        message = "GEORUSH API could not start."
-        if os.path.exists(log):
-            message += "\n\nSee georush-startup-error.txt for details."
-        raise RuntimeError(message)
+        raise RuntimeError(
+            "GEORUSH API could not start.\n\n"
+            f"Startup details were written to:\n{log_path()}"
+        )
 
     webview.create_window(
         "GEORUSH SEO",

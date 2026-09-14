@@ -1,0 +1,13 @@
+GEORUSH v19 fixes the second desktop startup failure.
+
+Root cause addressed:
+The previous desktop dependency list did not include all Python packages imported
+by the bundled GEORUSH API, especially httpx and pydantic-settings. The API import
+therefore could fail inside the packaged EXE while the GUI only reported that the
+API could not start.
+
+v19:
+- installs the complete runtime dependency set
+- verifies `import main` during GitHub Actions BEFORE building the EXE
+- writes startup exceptions to %TEMP%\GEORUSH-SEO-startup-error.txt
+- keeps the API and crawler inside the EXE
