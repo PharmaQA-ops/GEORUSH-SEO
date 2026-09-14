@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GEORUSH SEO</title>
-<link rel="stylesheet" href="styles.css?v=11">
+<link rel="stylesheet" href="styles.css?v=13">
 </head>
 <body>
 <aside class="sidebar">
@@ -19,19 +19,12 @@
     <a class="nav-link" href="#backlinks" data-page="backlinks">Backlinks</a>
     <a class="nav-link" href="#analytics" data-page="analytics">Analytics</a>
   </nav>
-  <div class="ai">
-    <b>GEORUSH AI</b>
-    <p>Ask the SEO analyst after connecting your data sources.</p>
-  </div>
+  <div class="ai"><b>GEORUSH AI</b><p>Ask the SEO analyst after connecting your data sources.</p></div>
 </aside>
 
 <main>
 <header>
-  <div>
-    <small>MARKETING / SEO</small>
-    <h1 id="pageTitle">SEO Command Center</h1>
-    <p>Your internal search intelligence platform.</p>
-  </div>
+  <div><small>MARKETING / SEO</small><h1 id="pageTitle">SEO Command Center</h1><p>Your internal search intelligence platform.</p></div>
   <div class="actions">
     <input id="globalSearch" type="search" placeholder="Search crawled URLs, titles, H1...">
     <button id="searchBtn" type="button">Search</button>
@@ -47,28 +40,25 @@
     <div class="card"><small>ISSUES</small><strong id="issues">—</strong><span>Detected problems</span></div>
     <div class="card"><small>CRAWL STATUS</small><strong id="status">READY</strong><span id="apiStatus">Checking API...</span></div>
   </section>
-
-  <section class="panel">
-    <div class="head"><div><h2>Technical SEO</h2><p>Live results from the GEORUSH crawler.</p></div><div id="msg"></div></div>
-    <table>
-      <thead><tr><th>URL</th><th>Status</th><th>Title</th><th>Words</th><th>Load</th><th>Issues</th></tr></thead>
-      <tbody id="rows"><tr><td colspan="6">Enter a site and run an audit.</td></tr></tbody>
-    </table>
+  <section class="panel"><div class="head"><div><h2>Technical SEO</h2><p>Live results from the GEORUSH crawler.</p></div><div id="msg"></div></div>
+    <table><thead><tr><th>URL</th><th>Status</th><th>Title</th><th>Words</th><th>Load</th><th>Issues</th></tr></thead><tbody id="rows"><tr><td colspan="6">Enter a site and run an audit.</td></tr></tbody></table>
   </section>
 </section>
 
-<section id="keywords" data-section="keywords" class="module"><h2>Keywords</h2><p>Keyword Intelligence — connect GSC to populate query, CTR, position and opportunity data.</p></section>
-<section id="rankings" data-section="rankings" class="module"><h2>Rankings</h2><p>Ranking intelligence module.</p></section>
-<section id="competitors" data-section="competitors" class="module"><h2>Competitors</h2><p>Competitor Intelligence module.</p></section>
-<section id="audit" data-section="audit" class="module"><h2>Site Audit</h2><p>Technical SEO audit module.</p></section>
-<section id="content" data-section="content" class="module"><h2>Content</h2><p>Content Intelligence module.</p></section>
-<section id="backlinks" data-section="backlinks" class="module"><h2>Backlinks</h2><p>Backlink Intelligence module.</p></section>
-<section id="analytics" data-section="analytics" class="module"><h2>Analytics</h2><p>Analytics and GA4 intelligence module.</p></section>
-</main>
+<section id="keywords" data-section="keywords" class="module"><div class="module-head"><div><h2>Keyword Intelligence</h2><p>Search queries, intent and opportunities from Google Search Console.</p></div><span class="badge" id="keywordSource">WAITING FOR GSC</span></div><div class="metric-grid" id="keywordMetrics"></div><div class="table-wrap"><table><thead><tr><th>Keyword</th><th>Intent</th><th>Clicks</th><th>Impressions</th><th>CTR</th><th>Position</th><th>Opportunity</th></tr></thead><tbody id="keywordRows"><tr><td colspan="7">Connect GSC to load real keyword data.</td></tr></tbody></table></div></section>
 
-<script src="app.js?v=11"></script>
-<script>
-window.addEventListener("error", function(e){ console.error("GEORUSH UI error:", e.error || e.message); });
-</script>
+<section id="rankings" data-section="rankings" class="module"><div class="module-head"><div><h2>Rankings</h2><p>Organic ranking visibility and landing-page performance.</p></div><span class="badge" id="rankingSource">GSC REQUIRED</span></div><div class="metric-grid" id="rankingMetrics"></div><div class="empty-state" id="rankingEmpty">Real keyword positions require Google Search Console. Run an audit to populate page-level SEO signals below.</div><div class="table-wrap"><table><thead><tr><th>Landing Page</th><th>SEO Score Signal</th><th>Words</th><th>H1</th><th>Issues</th></tr></thead><tbody id="rankingRows"><tr><td colspan="5">Run an audit first.</td></tr></tbody></table></div></section>
+
+<section id="competitors" data-section="competitors" class="module"><div class="module-head"><div><h2>Competitor Intelligence</h2><p>Compare crawl-level on-page signals across domains.</p></div><span class="badge">CRAWL SIGNALS</span></div><div class="compare-controls"><input id="competitorUrl" placeholder="Competitor URL e.g. https://example.com"><button id="inspectCompetitor" type="button">Inspect competitor</button></div><div id="competitorResult" class="compare-grid"><div class="empty-state">Enter a competitor URL and inspect it.</div></div></section>
+
+<section id="audit" data-section="audit" class="module"><div class="module-head"><div><h2>Site Audit</h2><p>Prioritized technical SEO issues detected by GEORUSH.</p></div><span class="badge" id="auditGrade">NO AUDIT</span></div><div class="metric-grid" id="auditMetrics"></div><div class="issue-grid" id="issueSummary"></div><div class="table-wrap"><table><thead><tr><th>URL</th><th>Status</th><th>Severity</th><th>Issues</th><th>Load</th></tr></thead><tbody id="auditRows"><tr><td colspan="5">Run an audit first.</td></tr></tbody></table></div></section>
+
+<section id="content" data-section="content" class="module"><div class="module-head"><div><h2>Content Intelligence</h2><p>Content depth, titles, descriptions and heading structure from the crawl.</p></div><span class="badge">CRAWL DATA</span></div><div class="metric-grid" id="contentMetrics"></div><div class="table-wrap"><table><thead><tr><th>Page</th><th>Title</th><th>Words</th><th>Description</th><th>H1</th><th>Content Issues</th></tr></thead><tbody id="contentRows"><tr><td colspan="6">Run an audit first.</td></tr></tbody></table></div></section>
+
+<section id="backlinks" data-section="backlinks" class="module"><div class="module-head"><div><h2>Backlink Intelligence</h2><p>Internal and external link signals discovered during crawling.</p></div><span class="badge">CRAWL SIGNALS</span></div><div class="metric-grid" id="backlinkMetrics"></div><div class="table-wrap"><table><thead><tr><th>Page</th><th>Internal Links</th><th>External Links</th><th>Link Signal</th></tr></thead><tbody id="backlinkRows"><tr><td colspan="4">Run an audit first.</td></tr></tbody></table></div></section>
+
+<section id="analytics" data-section="analytics" class="module"><div class="module-head"><div><h2>Analytics</h2><p>Crawl performance now; GA4 metrics when connected.</p></div><span class="badge">GA4 READY</span></div><div class="metric-grid" id="analyticsMetrics"></div><div class="panel-lite"><h3>Data source status</h3><p><b>Crawler:</b> <span id="analyticsCrawlerStatus">No audit loaded</span></p><p><b>Google Analytics 4:</b> Not connected</p><p><b>Google Search Console:</b> Not connected</p></div></section>
+</main>
+<script src="app.js?v=13"></script>
 </body>
 </html>

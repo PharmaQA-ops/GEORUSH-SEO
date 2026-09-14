@@ -12,7 +12,7 @@ from ai import ask
 
 SEARCH_INDEX = []
 
-app = FastAPI(title="GEORUSH SEO API", version="0.10.1")
+app = FastAPI(title="GEORUSH SEO API", version="0.13.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,7 +27,7 @@ class CrawlRequest(BaseModel):
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "service": "georush-seo-api", "version": "0.10.1"}
+    return {"status": "ok", "service": "georush-seo-api", "version": "0.13.0"}
 
 @app.post("/api/crawl")
 def start_crawl(req: CrawlRequest):
