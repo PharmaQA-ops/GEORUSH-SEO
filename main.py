@@ -4,8 +4,9 @@ from pydantic import BaseModel, Field
 from crawler import crawl
 from score import calculate_score
 from gsc import demo_data, fetch_search_analytics
+from keywords import normalize_gsc_rows, summarize
 
-app=FastAPI(title="GEORUSH SEO API",version="0.5.0")
+app=FastAPI(title="GEORUSH SEO API",version="0.6.0")
 app.add_middleware(CORSMiddleware,allow_origins=["*"],allow_credentials=True,allow_methods=["*"],allow_headers=["*"])
 
 class CrawlRequest(BaseModel):
@@ -13,7 +14,7 @@ class CrawlRequest(BaseModel):
     max_pages:int=Field(default=25,ge=1,le=500)
 
 @app.get("/api/health")
-def health(): return {"status":"ok","service":"georush-seo-api","version":"0.5.0"}
+def health(): return {"status":"ok","service":"georush-seo-api","version":"0.6.0"}
 
 @app.post("/api/crawl")
 def start_crawl(req:CrawlRequest): result=crawl(req.url,req.max_pages)
@@ -37,3 +38,12 @@ async def gsc_search(req: GSCRequest):
     return await fetch_search_analytics(
         req.access_token, req.site_url, req.start_date, req.end_date, req.row_limit
     )
+
+
+class KeywordRowsRequest(BaseModel):
+    rows: list = Field(default_factory=list)
+
+@app.post("/api/keywords/analyze")
+def analyze_keywords(req: KeywordRowsRequest):
+    rows=normalize_gsc_rows({"rows":req.rows})
+    return {"summary":summarize(rows),"rows":rows}

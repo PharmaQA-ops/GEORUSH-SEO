@@ -1,5 +1,5 @@
 # GEORUSH SEO
-Step 5 — Google Search Console foundation.
+Step 6 — Keyword Intelligence.
 
 Flat architecture:
 - index.html
@@ -9,28 +9,25 @@ Flat architecture:
 - crawler.py
 - score.py
 - gsc.py
+- keywords.py
 - requirements.txt
 
-GSC capabilities:
-- Search clicks
-- Impressions
-- CTR
-- Average position
-- Query/page dimensions
-- Date range
-- Up to 25,000 rows per request
-- OAuth access-token-ready API
+Keyword intelligence includes:
+- GSC keyword/page normalization
+- Search clicks, impressions, CTR and position
+- Search intent classification
+- Informational / Commercial / Transactional / Navigational intent
+- Opportunity scoring
+- Opportunity ranking
+- Intent distribution
+- Keyword-to-page mapping foundation
 
-Endpoints:
-GET /api/health
-POST /api/crawl
-GET /api/gsc/demo
-POST /api/gsc/search-analytics
+Endpoint:
+POST /api/keywords/analyze
 
-Security:
-Never commit Google client secrets, access tokens, or refresh tokens to GitHub. Use environment variables or a secure backend credential store.
+This step deliberately does not invent search volume, keyword difficulty or CPC. Those require a real keyword-data provider and can be connected later.
 
-Run locally:
+Run:
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt

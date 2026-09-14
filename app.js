@@ -44,3 +44,11 @@ document.addEventListener("DOMContentLoaded",()=>{
   const b=$("#startCrawl")||$("#startBtn")||document.querySelector("button");
   if(b)b.addEventListener("click",startCrawl);
 });
+
+async function analyzeKeywords(rows){
+  const r=await fetch(`${API}/api/keywords/analyze`,{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({rows})
+  });
+  return await r.json();
+}
