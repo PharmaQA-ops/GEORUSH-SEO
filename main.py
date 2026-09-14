@@ -1,3 +1,5 @@
+import os
+from fastapi.responses import FileResponse
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -11,6 +13,11 @@ from analytics import analytics_summary
 from ai import ask
 
 SEARCH_INDEX = []
+
+@app.get("/")
+def desktop_home():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "index.html"))
+
 
 app = FastAPI(title="GEORUSH SEO API", version="0.14.0")
 app.add_middleware(
