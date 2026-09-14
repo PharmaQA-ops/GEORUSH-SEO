@@ -4,20 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GEORUSH SEO</title>
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
 <aside class="sidebar">
   <div class="brand"><span>G</span><div><b>GEORUSH</b><small>SEO INTELLIGENCE</small></div></div>
   <nav id="mainNav">
-    <button type="button" class="nav-link active" data-page="dashboard">Dashboard</button>
-    <button type="button" class="nav-link" data-page="keywords">Keywords</button>
-    <button type="button" class="nav-link" data-page="rankings">Rankings</button>
-    <button type="button" class="nav-link" data-page="competitors">Competitors</button>
-    <button type="button" class="nav-link" data-page="audit">Site Audit</button>
-    <button type="button" class="nav-link" data-page="content">Content</button>
-    <button type="button" class="nav-link" data-page="backlinks">Backlinks</button>
-    <button type="button" class="nav-link" data-page="analytics">Analytics</button>
+    <a class="nav-link active" href="#dashboard" data-page="dashboard">Dashboard</a>
+    <a class="nav-link" href="#keywords" data-page="keywords">Keywords</a>
+    <a class="nav-link" href="#rankings" data-page="rankings">Rankings</a>
+    <a class="nav-link" href="#competitors" data-page="competitors">Competitors</a>
+    <a class="nav-link" href="#audit" data-page="audit">Site Audit</a>
+    <a class="nav-link" href="#content" data-page="content">Content</a>
+    <a class="nav-link" href="#backlinks" data-page="backlinks">Backlinks</a>
+    <a class="nav-link" href="#analytics" data-page="analytics">Analytics</a>
   </nav>
   <div class="ai">
     <b>GEORUSH AI</b>
@@ -66,6 +66,9 @@
 <section id="analytics" data-section="analytics" class="module"><h2>Analytics</h2><p>Analytics and GA4 intelligence module.</p></section>
 </main>
 
-<script src="app.js"></script>
+<script src="app.js?v=11"></script>
+<script>
+window.addEventListener("error", function(e){ console.error("GEORUSH UI error:", e.error || e.message); });
+</script>
 </body>
 </html>
