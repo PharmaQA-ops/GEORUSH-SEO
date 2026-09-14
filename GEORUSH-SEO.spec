@@ -1,20 +1,19 @@
 
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 from pathlib import Path
+from PyInstaller.utils.hooks import collect_submodules, collect_data_files
 
 root = Path(SPECPATH)
 
-hidden = [
-    "uvicorn",
-    "uvicorn.logging",
-    "uvicorn.loops.auto",
-    "uvicorn.protocols.http.auto",
-    "uvicorn.protocols.websockets.auto",
-    "uvicorn.lifespan.on",
-    "webview",
+project_modules = [
+    "main", "crawler", "score", "gsc", "keywords", "competitor",
+    "content", "analytics", "ai", "config", "database", "health",
+    "seo_service"
 ]
 
+hidden = []
+for mod in project_modules:
+    hidden += collect_submodules(mod) if mod in ["main"] else [mod]
 hidden += collect_submodules("uvicorn")
 hidden += collect_submodules("webview")
 
@@ -25,8 +24,6 @@ datas = [
     (str(root / "api-config.js"), "."),
 ]
 
-# Include project modules as data is unnecessary; PyInstaller discovers imports
-# from main.py and georush_desktop.py. The frontend files are explicitly bundled.
 a = Analysis(
     ["georush_desktop.py"],
     pathex=[str(root)],

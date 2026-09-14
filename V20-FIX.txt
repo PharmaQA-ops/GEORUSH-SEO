@@ -1,0 +1,13 @@
+GEORUSH SEO v20 — desktop GUI fix.
+
+The previous EXE successfully started the embedded API, but the browser view showed
+raw HTML with no CSS. The API served index.html but did not serve styles.css,
+app.js, or api-config.js.
+
+v20 fixes this by mounting the complete frontend directory through FastAPI StaticFiles
+at the same origin after all /api routes.
+
+The EXE is now intended to be genuinely self-contained:
+GUI + FastAPI + crawler + frontend assets.
+
+The desktop app does not depend on the live GitHub Pages website for its UI.

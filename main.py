@@ -1,6 +1,6 @@
 import os
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -24,10 +24,6 @@ app.add_middleware(
 )
 
 SEARCH_INDEX = []
-
-@app.get("/")
-def desktop_home():
-    return FileResponse(os.path.join(os.path.dirname(__file__), "index.html"))
 
 class CrawlRequest(BaseModel):
     url: str
@@ -128,3 +124,8 @@ class AIRequest(BaseModel):
 @app.post("/api/ai/ask")
 def ai_ask(req: AIRequest):
     return ask(req.question, req.context)
+
+# Desktop/web frontend assets. This MUST be mounted after /api routes so
+# FastAPI routes remain available while the UI loads CSS/JS from the same origin.
+FRONTEND_DIR = os.path.dirname(os.path.abspath(__file__))
+app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
