@@ -18,6 +18,7 @@
     <a class="nav-link" href="#content" data-page="content">Content</a>
     <a class="nav-link" href="#backlinks" data-page="backlinks">Backlinks</a>
     <a class="nav-link" href="#analytics" data-page="analytics">Analytics</a>
+    <a class="nav-link" href="#reports" data-page="reports">Reports</a>
   </nav>
   <div class="ai"><b>GEORUSH AI</b><p>Ask the SEO analyst after connecting your data sources.</p></div>
 </aside>
@@ -45,7 +46,21 @@
   </section>
 </section>
 
-<section id="keywords" data-section="keywords" class="module"><div class="module-head"><div><h2>Keyword Intelligence</h2><p>Search queries, intent and opportunities from Google Search Console.</p></div><span class="badge" id="keywordSource">WAITING FOR GSC</span></div><div class="metric-grid" id="keywordMetrics"></div><div class="table-wrap"><table><thead><tr><th>Keyword</th><th>Intent</th><th>Clicks</th><th>Impressions</th><th>CTR</th><th>Position</th><th>Opportunity</th></tr></thead><tbody id="keywordRows"><tr><td colspan="7">Connect GSC to load real keyword data.</td></tr></tbody></table></div></section>
+<section id="keywords" data-section="keywords" class="module">
+  <div class="module-head">
+    <div><h2>Keyword Intelligence</h2><p>Analyze GSC keyword exports, identify opportunities and map keywords to crawled pages.</p></div>
+    <span class="badge" id="keywordSource">DEMO / CSV / GSC</span>
+  </div>
+  <div class="keyword-toolbar">
+    <input id="keywordFilter" type="search" placeholder="Filter keywords...">
+    <select id="keywordIntentFilter"><option value="">All intent</option><option>Informational</option><option>Commercial</option><option>Transactional</option><option>Navigational</option></select>
+    <button id="keywordDemo" type="button">Load demo data</button>
+    <label class="file-button">Import GSC CSV<input id="keywordCsv" type="file" accept=".csv,text/csv" hidden></label>
+  </div>
+  <div class="metric-grid" id="keywordMetrics"></div>
+  <div class="table-wrap"><table><thead><tr><th>Keyword</th><th>Intent</th><th>Clicks</th><th>Impressions</th><th>CTR</th><th>Position</th><th>Opportunity</th></tr></thead>
+  <tbody id="keywordRows"><tr><td colspan="7">Load demo data or import a Google Search Console CSV export.</td></tr></tbody></table></div>
+</section>
 
 <section id="rankings" data-section="rankings" class="module"><div class="module-head"><div><h2>Rankings</h2><p>Organic ranking visibility and landing-page performance.</p></div><span class="badge" id="rankingSource">GSC REQUIRED</span></div><div class="metric-grid" id="rankingMetrics"></div><div class="empty-state" id="rankingEmpty">Real keyword positions require Google Search Console. Run an audit to populate page-level SEO signals below.</div><div class="table-wrap"><table><thead><tr><th>Landing Page</th><th>SEO Score Signal</th><th>Words</th><th>H1</th><th>Issues</th></tr></thead><tbody id="rankingRows"><tr><td colspan="5">Run an audit first.</td></tr></tbody></table></div></section>
 
@@ -56,6 +71,24 @@
 <section id="content" data-section="content" class="module"><div class="module-head"><div><h2>Content Intelligence</h2><p>Content depth, titles, descriptions and heading structure from the crawl.</p></div><span class="badge">CRAWL DATA</span></div><div class="metric-grid" id="contentMetrics"></div><div class="table-wrap"><table><thead><tr><th>Page</th><th>Title</th><th>Words</th><th>Description</th><th>H1</th><th>Content Issues</th></tr></thead><tbody id="contentRows"><tr><td colspan="6">Run an audit first.</td></tr></tbody></table></div></section>
 
 <section id="backlinks" data-section="backlinks" class="module"><div class="module-head"><div><h2>Backlink Intelligence</h2><p>Internal and external link signals discovered during crawling.</p></div><span class="badge">CRAWL SIGNALS</span></div><div class="metric-grid" id="backlinkMetrics"></div><div class="table-wrap"><table><thead><tr><th>Page</th><th>Internal Links</th><th>External Links</th><th>Link Signal</th></tr></thead><tbody id="backlinkRows"><tr><td colspan="4">Run an audit first.</td></tr></tbody></table></div></section>
+
+<section id="reports" data-section="reports" class="module">
+  <div class="module-head">
+    <div><h2>SEO Reports</h2><p>Turn the latest GEORUSH audit into a management-ready report.</p></div>
+    <span class="badge">LOCAL REPORTING</span>
+  </div>
+  <div class="report-controls">
+    <input id="reportTitle" value="GEORUSH SEO Audit Report" placeholder="Report title">
+    <input id="reportCompany" placeholder="Company / website name">
+    <button id="generateReport" type="button">Generate Report</button>
+    <button id="downloadReport" type="button">Download HTML</button>
+    <button id="downloadReportCsv" type="button">Export CSV</button>
+    <button id="printReport" type="button">Print / Save PDF</button>
+  </div>
+  <div id="reportPreview" class="report-preview">
+    <div class="empty-state">Run an audit first, then click Generate Report.</div>
+  </div>
+</section>
 
 <section id="analytics" data-section="analytics" class="module"><div class="module-head"><div><h2>Analytics</h2><p>Crawl performance now; GA4 metrics when connected.</p></div><span class="badge">GA4 READY</span></div><div class="metric-grid" id="analyticsMetrics"></div><div class="panel-lite"><h3>Data source status</h3><p><b>Crawler:</b> <span id="analyticsCrawlerStatus">No audit loaded</span></p><p><b>Google Analytics 4:</b> Not connected</p><p><b>Google Search Console:</b> Not connected</p></div></section>
 </main>

@@ -1,0 +1,20 @@
+GEORUSH SEO Step 21 — Keyword Intelligence + Reports
+
+Keywords:
+- demo keyword dataset
+- GSC CSV import
+- keyword filtering
+- intent filtering
+- clicks, impressions, CTR, position
+- opportunity scoring
+
+Reports:
+- management report preview
+- SEO score, pages, issues and word totals
+- issue summary
+- page summary
+- HTML download
+- CSV export
+- Print / Save as PDF
+
+No authentication is required for this stage.
