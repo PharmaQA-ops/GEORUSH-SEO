@@ -1,38 +1,18 @@
 # GEORUSH SEO
+Step 4 — GEORUSH SEO Score.
 
-Step 3 — Technical SEO Engine.
+Flat architecture. The crawl now produces a weighted 0–100 SEO score:
+Technical SEO 30%, Indexability 20%, On-Page SEO 20%, Content Quality 15%, Internal Linking 10%, Performance 5%.
 
-Flat repository architecture:
-- index.html
-- styles.css
-- app.js
-- main.py
-- crawler.py
-- requirements.txt
+Score grades:
+90–100 Excellent
+80–89 Good
+70–79 Needs Improvement
+50–69 Poor
+0–49 Critical
 
-Technical checks include:
-- HTTP errors
-- missing/long titles
-- duplicate titles
-- missing/long descriptions
-- duplicate descriptions
-- H1 structure
-- canonical consistency
-- noindex
-- thin content
-- image ALT
-- mixed content
-- redirects
-- orphan pages
-- page depth
-- severity classification
-- technical health score
-
-Run locally:
+Run:
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
-
-API health:
-http://127.0.0.1:8000/api/health
