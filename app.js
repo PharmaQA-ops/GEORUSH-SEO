@@ -1,6 +1,7 @@
 const configuredAPI = window.GEORUSH_API || "";
 const API = configuredAPI || ((window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://127.0.0.1:8000" : "");
 let LAST_CRAWL = null;
+let INTELLIGENCE = {competitors:null, radar:null, recommendations:[], ai:null};
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 
@@ -102,6 +103,53 @@ function initKeywords(){
   });
 }
 
+
+async function discoverCompetitors(){
+  const target=$('#site')?.value.trim(); if(!target)return;
+  const btn=$('#discoverCompetitors'); if(btn)btn.disabled=true;
+  if($('#competitorResult'))$('#competitorResult').innerHTML='<div class="empty-state">Discovering relevant competitor domains and analyzing them...</div>';
+  try{
+    const keywords=KEYWORDS.slice(0,8).map(x=>x.query);
+    const d=await api('/api/competitor/discover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,keywords,limit:5})});
+    INTELLIGENCE.competitors=d;
+    renderCompetitorIntelligence(d);
+  }catch(e){
+    if($('#competitorResult'))$('#competitorResult').innerHTML=`<div class="empty-state">Competitor discovery failed: ${escapeHtml(e.message||'API unavailable')}</div>`;
+  }finally{if(btn)btn.disabled=false;}
+}
+function renderCompetitorIntelligence(d){
+  const comps=d?.competitors?.competitors||[];
+  const target=d?.competitors?.target||d?.target||{};
+  if(!$('#competitorResult'))return;
+  if(!comps.length){$('#competitorResult').innerHTML='<div class="empty-state">No automatic competitors were discovered. Add a competitor URL manually.</div>';return;}
+  const ts=target.signals||{};
+  $('#competitorResult').innerHTML=`<div class="intel-summary"><b>Target:</b> ${escapeHtml(d.target||'')} · <b>Top discovered competitor:</b> ${escapeHtml(comps[0].url||'')}</div>
+  <div class="table-wrap"><table><thead><tr><th>Domain</th><th>Signal Score</th><th>Words</th><th>H1</th><th>Response</th><th>Canonical</th><th>HTTPS</th></tr></thead><tbody>${comps.map(c=>{const s=c.signals||{};return `<tr><td><b>${escapeHtml(c.url)}</b></td><td>${c.signal_score??0}</td><td>${s.word_count??0}</td><td>${s.h1_count??0}</td><td>${c.response_time_ms??0} ms</td><td>${s.canonical?'Yes':'No'}</td><td>${s.https?'Yes':'No'}</td></tr>`}).join('')}</tbody></table></div>`;
+}
+async function runRadar(url){
+  try{
+    const d=await api('/api/radar/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    INTELLIGENCE.radar=d; return d;
+  }catch(e){return {error:e.message||'Radar unavailable'};}
+}
+async function buildFullIntelligence(){
+  const target=$('#site')?.value.trim();if(!target)return null;
+  const keywords=KEYWORDS.slice(0,8).map(x=>x.query);
+  const d=await api('/api/intelligence/full',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,keywords,competitor_limit:5,radar:true})});
+  INTELLIGENCE=d;
+  return d;
+}
+function intelligenceHtml(d){
+  const comps=d?.competitors?.competitors||[];
+  const radar=d?.radar?.summary||{};
+  const rec=d?.recommendations||[];
+  return `<div class="report-section"><h3>Automatic Competitor Analysis</h3><p>GEORUSH discovered and inspected ${comps.length} competitor domain(s) using the target's keyword/topic signals.</p>
+  ${comps.length?`<table class="report-table"><thead><tr><th>Competitor</th><th>Signal Score</th><th>Words</th><th>H1</th><th>Response</th><th>HTTPS</th></tr></thead><tbody>${comps.map(c=>{const s=c.signals||{};return `<tr><td>${escapeHtml(c.url)}</td><td>${c.signal_score??0}</td><td>${s.word_count??0}</td><td>${s.h1_count??0}</td><td>${c.response_time_ms??0} ms</td><td>${s.https?'Yes':'No'}</td></tr>`}).join('')}</tbody></table>`:'<p>No competitor data returned.</p>'}</div>
+  <div class="report-section"><h3>Cloudflare Radar / URL Scanner</h3><p>Radar provides supplementary security, performance, technology and network signals. ${radar.radar_url?`<a href="${escapeHtml(radar.radar_url)}" target="_blank" rel="noopener">Open Cloudflare Radar scan</a>`:'Radar scan link unavailable.'}</p>
+  <table class="report-table"><tbody><tr><th>Radar Rank</th><td>${escapeHtml(radar.radar_rank??'Not available')}</td></tr><tr><th>Country</th><td>${escapeHtml(radar.country??'Not available')}</td></tr><tr><th>ASN</th><td>${escapeHtml(radar.asn??'Not available')}</td></tr><tr><th>Security verdict</th><td>${radar.malicious===true?'Malicious verdict reported':'No malicious verdict reported / not available'}</td></tr><tr><th>API status</th><td>${radar.configured?'Configured':'Public Radar link only — API credentials not configured'}</td></tr></tbody></table></div>
+  <div class="report-section"><h3>GEORUSH AI Recommendations</h3>${rec.length?`<table class="report-table"><thead><tr><th>Priority</th><th>Area</th><th>Recommendation</th></tr></thead><tbody>${rec.map(r=>`<tr><td>${escapeHtml(r.priority)}</td><td>${escapeHtml(r.area)}</td><td>${escapeHtml(r.action)}</td></tr>`).join('')}</tbody></table>`:'<p>No additional recommendations generated.</p>'}</div>`;
+}
+
 function reportData(){
   const ps=pages(), score=LAST_CRAWL?.seo_score||{}, counts={};
   ps.forEach(p=>(p.issues||[]).forEach(i=>counts[i]=(counts[i]||0)+1));
@@ -141,24 +189,30 @@ function buildReportHtml(){
   <div class="report-section"><h3>Page Summary</h3><table class="report-table"><thead><tr><th>URL</th><th>Status</th><th>Title</th><th>Words</th><th>Load</th><th>Issues</th></tr></thead><tbody>${ps.map(p=>`<tr><td>${escapeHtml(p.url)}</td><td>${p.status_code??0}</td><td>${escapeHtml(p.title||'—')}</td><td>${p.word_count??0}</td><td>${p.response_time_ms??0} ms</td><td>${escapeHtml((p.issues||[]).join(', ')||'None')}</td></tr>`).join('')}</tbody></table></div>
   <div class="report-foot">Generated by GEORUSH SEO Intelligence.</div>`;
 }
-function generateReport(){if(!pages().length){$('#reportPreview').innerHTML='<div class="empty-state">Run an audit first.</div>';return;}$('#reportPreview').innerHTML=buildReportHtml();}
+async function generateReport(){
+  if(!pages().length){$('#reportPreview').innerHTML='<div class="empty-state">Run an audit first.</div>';return;}
+  $('#reportPreview').innerHTML='<div class="empty-state">Building SEO report, competitor analysis, Cloudflare Radar signals and GEORUSH AI recommendations...</div>';
+  try{
+    const d=await buildFullIntelligence();
+    $('#reportPreview').innerHTML=buildReportHtml()+intelligenceHtml(d);
+  }catch(e){
+    $('#reportPreview').innerHTML=buildReportHtml()+`<div class="report-section"><h3>Intelligence Add-on</h3><p>Automatic intelligence unavailable: ${escapeHtml(e.message||'API unavailable')}.</p></div>`;
+  }
+}
 function downloadBlob(name,type,text){const blob=new Blob([text],{type});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
-function downloadReport(){
-  if(!pages().length){generateReport();if(!pages().length)return;}
+async function downloadReport(){
+  if(!pages().length){await generateReport();if(!pages().length)return;}
+  if(!INTELLIGENCE?.competitors){await generateReport();}
   const title=($('#reportTitle')?.value||'GEORUSH SEO Audit Report').replace(/[^\w-]+/g,'-');
   const reportCss=`body{font:14px Arial;margin:40px;color:#172535}.report-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.report-kpi{border:1px solid #ddd;padding:12px}.report-kpi small{display:block;color:#667}.report-kpi strong{font-size:24px}.report-charts{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:20px 0}.chart-card{border:1px solid #ddd;border-radius:8px;padding:15px}.report-bar-chart{display:flex;align-items:flex-end;gap:8px;height:190px;border-bottom:1px solid #ddd}.report-bar{flex:1;position:relative;height:100%;display:flex;align-items:flex-end;justify-content:center}.report-bar i{display:block;width:70%;height:var(--bar-h);background:#172535;border-radius:3px 3px 0 0}.report-bar span{position:absolute;bottom:-25px;font-size:9px}.report-pie-wrap{display:flex;gap:20px;align-items:center}.report-pie{width:150px;height:150px;border-radius:50%}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left;font-size:12px}@media(max-width:800px){.report-charts{grid-template-columns:1fr}}`;
-  const doc=`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>${reportCss}</style></head><body>${buildReportHtml()}</body></html>`;
+  const doc=`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>${reportCss}</style></head><body>${buildReportHtml()}${intelligenceHtml(INTELLIGENCE)}</body></html>`;
   downloadBlob(`${title}.html`,'text/html;charset=utf-8',doc);
 }
-function printReport(){
-  if(!pages().length){
-    generateReport();
-    if(!pages().length)return;
-  }
-  const report = $('#reportPreview');
-  if(!report)return;
-  document.body.classList.add('printing-report');
-  window.print();
+async function printReport(){
+  if(!pages().length){await generateReport();if(!pages().length)return;}
+  if(!INTELLIGENCE?.competitors){await generateReport();}
+  const report=$('#reportPreview');if(!report)return;
+  document.body.classList.add('printing-report');window.print();
   setTimeout(()=>document.body.classList.remove('printing-report'),1000);
 }
 function renderReports(){if($('#reportPreview')&&pages().length&&!$('#reportPreview').dataset.generated){generateReport();$('#reportPreview').dataset.generated='1';}}
@@ -174,4 +228,4 @@ function renderCompetitor(){if(!$('#competitorUrl').value && $('#site').value)$(
 function renderAllModules(){renderKeywordTable();renderRankings();renderAudit();renderContent();renderBacklinks();renderAnalytics();renderCompetitor();}
 function renderModule(page){if(page==='keywords')renderKeywordTable();if(page==='reports')renderReports();if(page==='rankings')renderRankings();if(page==='audit')renderAudit();if(page==='content')renderContent();if(page==='backlinks')renderBacklinks();if(page==='analytics')renderAnalytics();}
 window.GEORUSH={showPage,runCrawl,performSearch};
-document.addEventListener('DOMContentLoaded',()=>{loadSaved();initNavigation();checkAPI();if(LAST_CRAWL)renderResults(LAST_CRAWL);$('#runAudit')?.addEventListener('click',runCrawl);$('#searchBtn')?.addEventListener('click',performSearch);$('#globalSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')performSearch();});$('#inspectCompetitor')?.addEventListener('click',inspectCompetitor);initKeywords();$('#generateReport')?.addEventListener('click',generateReport);$('#downloadReport')?.addEventListener('click',downloadReport);$('#downloadReportCsv')?.addEventListener('click',downloadReportCsv);$('#printReport')?.addEventListener('click',printReport);});
+document.addEventListener('DOMContentLoaded',()=>{loadSaved();initNavigation();checkAPI();if(LAST_CRAWL)renderResults(LAST_CRAWL);$('#runAudit')?.addEventListener('click',runCrawl);$('#searchBtn')?.addEventListener('click',performSearch);$('#globalSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')performSearch();});$('#inspectCompetitor')?.addEventListener('click',inspectCompetitor);$('#discoverCompetitors')?.addEventListener('click',discoverCompetitors);initKeywords();$('#generateReport')?.addEventListener('click',generateReport);$('#fullIntelReport')?.addEventListener('click',generateReport);$('#downloadReport')?.addEventListener('click',downloadReport);$('#downloadReportCsv')?.addEventListener('click',downloadReportCsv);$('#printReport')?.addEventListener('click',printReport);});

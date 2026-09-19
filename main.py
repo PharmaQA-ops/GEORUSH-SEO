@@ -8,12 +8,13 @@ from crawler import crawl
 from score import calculate_score
 from gsc import demo_data, fetch_search_analytics
 from keywords import normalize_gsc_rows, summarize
-from competitor import inspect_competitor, compare_domains
+from competitor import inspect_competitor, compare_domains, discover_competitors, analyze_competitor_set
 from content import analyze_text
 from analytics import analytics_summary
-from ai import ask
+from radar import scan_url, get_result, radar_summary
+from ai import ask, generate_report_recommendations, build_ai_context
 
-app = FastAPI(title="GEORUSH SEO API", version="0.18.0")
+app = FastAPI(title="GEORUSH SEO API", version="0.24.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,7 +32,7 @@ class CrawlRequest(BaseModel):
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "service": "georush-seo-api", "version": "0.18.0"}
+    return {"status": "ok", "service": "georush-seo-api", "version": "0.24.0"}
 
 @app.post("/api/crawl")
 def start_crawl(req: CrawlRequest):
@@ -80,6 +81,59 @@ def competitor_inspect(req: CompetitorRequest):
 @app.post("/api/competitor/compare")
 def competitor_compare(req: CompetitorCompareRequest):
     return compare_domains(req.target, req.competitors[:10])
+
+
+class AutoCompetitorRequest(BaseModel):
+    target: str
+    keywords: list[str] = Field(default_factory=list)
+    limit: int = Field(default=5, ge=1, le=10)
+
+@app.post("/api/competitor/discover")
+def competitor_discover(req: AutoCompetitorRequest):
+    found=discover_competitors(req.target, req.keywords, req.limit)
+    urls=[x["url"] for x in found.get("competitors",[])]
+    analysis=analyze_competitor_set(req.target, urls)
+    return {**found, **analysis}
+
+class RadarRequest(BaseModel):
+    url: str
+
+@app.post("/api/radar/scan")
+def radar_scan(req: RadarRequest):
+    submission=scan_url(req.url)
+    if submission.get("scan",{}).get("uuid"):
+        submission["result"]=get_result(submission["scan"]["uuid"])
+        submission["summary"]=radar_summary(req.url, submission["result"])
+    else:
+        submission["summary"]=radar_summary(req.url)
+    return submission
+
+class IntelligenceRequest(BaseModel):
+    target: str
+    keywords: list[str] = Field(default_factory=list)
+    competitor_limit: int = Field(default=5, ge=1, le=10)
+    radar: bool = True
+
+@app.post("/api/intelligence/full")
+def full_intelligence(req: IntelligenceRequest):
+    target=req.target
+    discovery=discover_competitors(target, req.keywords, req.competitor_limit)
+    urls=[x["url"] for x in discovery.get("competitors",[])]
+    comp=analyze_competitor_set(target, urls)
+    radar_data={}
+    if req.radar:
+        submission=scan_url(target)
+        radar_data=submission
+        if submission.get("scan",{}).get("uuid"):
+            radar_data["result"]=get_result(submission["scan"]["uuid"])
+            radar_data["summary"]=radar_summary(target, radar_data["result"])
+        else:
+            radar_data["summary"]=radar_summary(target)
+    crawl={"results":SEARCH_INDEX,"pages":len(SEARCH_INDEX),"issues":sum(len(x.get("issues",[]) or []) for x in SEARCH_INDEX)}
+    # Score isn't retained separately in the API index, so the report can still use issue-level context.
+    context=build_ai_context(crawl=crawl, keywords=req.keywords, competitors=comp.get("competitors",[]), radar=radar_data.get("summary",{}))
+    ai=generate_report_recommendations(crawl=crawl, competitors=comp.get("competitors",[]), keywords=req.keywords, radar=radar_data.get("summary",{}))
+    return {"target":target,"competitors":comp,"radar":radar_data,"recommendations":ai,"ai":context}
 
 class SearchRequest(BaseModel):
     query: str

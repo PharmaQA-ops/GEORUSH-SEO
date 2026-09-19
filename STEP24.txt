@@ -1,0 +1,13 @@
+GEORUSH SEO Step 24 — Competitor Intelligence + Cloudflare Radar + AI Recommendations
+
+Added:
+- Automatic competitor discovery from target/topic signals
+- Competitor homepage signal benchmarking
+- Top competitor analysis in reports
+- Cloudflare Radar URL Scanner integration (optional API credentials)
+- Public Radar scan link when credentials are not configured
+- GEORUSH AI recommendations based on crawl issues, keywords, competitors and Radar
+- Full Intelligence Report button
+- Competitor auto-discovery button
+
+Cloudflare Radar is treated as a supplementary data source. Radar's public/API data can expose network, DNS, security, technology and performance context; URL Scanner can return redirects, requests, cookies, performance, technologies and verdict signals.

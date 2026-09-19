@@ -80,3 +80,5 @@ body.printing-report #reportPreview{
  .report-controls,.module-head{display:none!important}
  .report-charts,.report-kpi,.report-section{break-inside:avoid}
 }
+
+.compare-controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}.compare-controls input{padding:11px;border:1px solid #d5dce3;border-radius:7px;min-width:320px}.compare-controls button{background:#17212d;color:#fff;border:0;border-radius:7px;padding:11px 15px;cursor:pointer}.intel-summary{background:#f8fafc;border:1px solid #e1e7ed;padding:14px;border-radius:8px;margin-bottom:14px}.report-section a{color:#087f68}.report-section a:hover{text-decoration:underline}
