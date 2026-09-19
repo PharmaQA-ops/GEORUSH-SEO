@@ -13,10 +13,10 @@ from content import analyze_text
 from analytics import analytics_summary
 from radar import scan_url, get_result, radar_summary
 from ai import ask, generate_report_recommendations, build_ai_context
-from gemini_agent import run_agent, GeminiAgentError
+from ollama_agent import run_agent as ollama_run_agent, OllamaAgentError
 from multi_research import run_multi_research
 
-app = FastAPI(title="GEORUSH SEO API", version="0.25.0")
+app = FastAPI(title="GEORUSH SEO API", version="0.28.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -35,7 +35,7 @@ class CrawlRequest(BaseModel):
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "service": "georush-seo-api", "version": "0.24.0"}
+    return {"status": "ok", "service": "georush-seo-api", "version": "0.28.0"}
 
 @app.post("/api/crawl")
 def start_crawl(req: CrawlRequest):
@@ -146,12 +146,13 @@ def full_intelligence(req: IntelligenceRequest):
         "radar": radar_data.get("summary",{}),
     }
     try:
-        gemini=run_agent(agent_context)
-    except GeminiAgentError as exc:
-        gemini={"success":False,"error":str(exc),"mode":"configuration_error","provider":"Google Gemini"}
+        ollama = ollama_run_agent("""You are the GEORUSH AI SEO Analyst. Analyze the supplied crawl, competitor, keyword and Radar evidence. Produce JSON with overall_priority, executive_summary, recommendations[{priority,area,finding,recommendation,evidence,affected_urls}], action_plan[{timeframe,actions}], data_gaps[]. Do not invent rankings, traffic, backlinks, revenue or penalties.""", agent_context)
+        ollama = {"success": True, "provider": "Ollama", **ollama}
+    except OllamaAgentError as exc:
+        ollama={"success":False,"error":str(exc),"mode":"configuration_or_runtime_error","provider":"Ollama"}
     except Exception as exc:
-        gemini={"success":False,"error":f"Gemini agent failed: {exc}","mode":"runtime_error","provider":"Google Gemini"}
-    return {"target":target,"competitors":comp,"radar":radar_data,"recommendations":ai,"ai":context,"gemini":gemini}
+        ollama={"success":False,"error":f"Ollama agent failed: {exc}","mode":"runtime_error","provider":"Ollama"}
+    return {"target":target,"competitors":comp,"radar":radar_data,"recommendations":ai,"ai":context,"ollama":ollama}
 
 
 class DeepResearchRequest(BaseModel):
@@ -164,7 +165,7 @@ def multi_agent_research(req: DeepResearchRequest):
     try:
         return run_multi_research(req.target, req.keywords, req.competitor_limit)
     except Exception as exc:
-        return {"success":False,"error":str(exc),"provider":"Google Gemini Multi-Agent Research"}
+        return {"success":False,"error":str(exc),"provider":"Ollama Multi-Agent Research"}
 
 class GeminiAgentRequest(BaseModel):
     target: str
@@ -173,16 +174,21 @@ class GeminiAgentRequest(BaseModel):
 
 @app.get("/api/ai/status")
 def ai_status():
-    return {
-        "provider": "Google Gemini",
-        "configured": bool(os.getenv("GEMINI_API_KEY", "").strip()),
-        "model": os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
-        "agent": "GEORUSH AI SEO Analyst",
-        "api": "Interactions API",
-    }
+    from ollama_agent import status as ollama_status
+    return ollama_status()
 
-@app.post("/api/ai/gemini")
-def gemini_ai(req: GeminiAgentRequest):
+@app.get("/api/ai/ollama/status")
+def ollama_status_endpoint():
+    from ollama_agent import status as ollama_status
+    return ollama_status()
+
+class OllamaAgentRequest(BaseModel):
+    target: str
+    keywords: list[dict] = Field(default_factory=list)
+    use_existing_intelligence: bool = True
+
+@app.post("/api/ai/ollama")
+def ollama_ai(req: OllamaAgentRequest):
     crawl = LAST_CRAWL or {"results": SEARCH_INDEX, "pages": len(SEARCH_INDEX), "issues": sum(len(x.get("issues", []) or []) for x in SEARCH_INDEX)}
     competitor_data = {}
     radar_data = {}
@@ -203,7 +209,6 @@ def gemini_ai(req: GeminiAgentRequest):
                 radar_data["summary"] = radar_summary(req.target)
         except Exception as exc:
             radar_data = {"error": str(exc), "summary": {"configured": False}}
-
     context = {
         "target": req.target,
         "crawl": crawl,
@@ -213,11 +218,12 @@ def gemini_ai(req: GeminiAgentRequest):
         "radar": radar_data.get("summary", radar_data),
     }
     try:
-        return run_agent(context)
-    except GeminiAgentError as exc:
-        return {"success": False, "error": str(exc), "provider": "Google Gemini", "mode": "configuration_error"}
+        result = ollama_run_agent("""You are the GEORUSH AI SEO Analyst. Analyze the supplied evidence and return JSON with overall_priority, executive_summary, recommendations[{priority,area,finding,recommendation,evidence,affected_urls}], action_plan[{timeframe,actions}], data_gaps[]. Do not invent facts.""", context)
+        return {"success": True, "provider": "Ollama", "model": os.getenv("OLLAMA_MODEL", "qwen3:1.7b"), **result}
+    except OllamaAgentError as exc:
+        return {"success": False, "error": str(exc), "provider": "Ollama", "mode": "runtime_error"}
     except Exception as exc:
-        return {"success": False, "error": f"Gemini agent failed: {exc}", "provider": "Google Gemini", "mode": "runtime_error"}
+        return {"success": False, "error": f"Ollama agent failed: {exc}", "provider": "Ollama", "mode": "runtime_error"}
 
 class SearchRequest(BaseModel):
     query: str

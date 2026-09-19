@@ -8,7 +8,7 @@ root = Path(SPECPATH)
 project_modules = [
     "main", "crawler", "score", "gsc", "keywords", "competitor",
     "content", "analytics", "ai", "config", "database", "health",
-    "seo_service"
+    "seo_service", "ollama_agent", "multi_research", "radar"
 ]
 
 hidden = []

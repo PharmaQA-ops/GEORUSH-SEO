@@ -1,0 +1,48 @@
+GEORUSH SEO — STEP 28
+ONE-CLICK WINDOWS + BACKGROUND OLLAMA
+
+WHAT CHANGED
+- georush_desktop.py now automatically checks Ollama.
+- If Ollama is stopped, GEORUSH starts `ollama serve` silently.
+- GEORUSH checks the configured OLLAMA_MODEL.
+- If the model is missing, GEORUSH automatically runs `ollama pull` once.
+- GEORUSH starts the FastAPI backend in the background.
+- GEORUSH opens the desktop UI automatically.
+- Only the Ollama process started by GEORUSH is stopped when the app exits.
+- Existing Ollama instances are reused and are NOT killed.
+- Long AI/research requests now get a 15-minute frontend timeout instead of 15 seconds.
+- PyInstaller spec includes Ollama/multi-research modules.
+- Added GEORUSH-SEO-START.bat and GEORUSH-SEO-START.vbs.
+- Added CREATE-GEORUSH-SHORTCUT.vbs.
+- Added BUILD-GEORUSH.bat for a windowless EXE build.
+
+DAILY USER EXPERIENCE
+1. Double-click GEORUSH SEO shortcut / GEORUSH-SEO.exe / GEORUSH-SEO-START.vbs.
+2. Ollama is checked and started silently if needed.
+3. Configured model is checked and pulled automatically if missing.
+4. GEORUSH backend starts silently.
+5. GEORUSH UI opens.
+6. User clicks audit/research/report normally.
+
+CONFIGURATION
+Default:
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen3:1.7b
+OLLAMA_TIMEOUT=180
+
+To use a larger model on a stronger marketing laptop, change OLLAMA_MODEL only.
+
+SECURITY
+- Ollama is kept on localhost.
+- No AI API key is required for local Ollama inference.
+- Do not expose port 11434 to the public Internet.
+- Do not commit API keys or .env files.
+
+BUILD
+Run BUILD-GEORUSH.bat after Python dependencies are installed.
+The resulting dist\GEORUSH-SEO.exe is copied to the project root.
+Then run CREATE-GEORUSH-SHORTCUT.vbs once.
+
+NOTE
+The first model download requires Internet. Web research also requires Internet.
+Local AI inference after the model is installed does not require Internet.

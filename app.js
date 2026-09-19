@@ -7,9 +7,10 @@ const $$ = s => Array.from(document.querySelectorAll(s));
 
 async function api(path, options = {}) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15000);
+  const timeoutMs = options.timeoutMs || (/research|intelligence|ai\//i.test(path) ? 15 * 60 * 1000 : 30000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(`${API}${path}`, {...options, signal: controller.signal});
+    const response = await fetch(`${API}${path}`, {...options, timeoutMs: undefined, signal: controller.signal});
     const text = await response.text();
     let data; try { data = JSON.parse(text); } catch { data = {detail:text}; }
     if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`);
@@ -136,7 +137,7 @@ async function runMultiAgentResearch(){
   const target=$('#site')?.value.trim(); if(!target)return;
   const btn=$('#deepResearch'); if(btn)btn.disabled=true;
   const box=$('#deepResearchResult');
-  if(box)box.innerHTML='<div class="empty-state"><b>GEORUSH 3-Agent Deep Research running...</b><br>Agent 1: competitor research · Agent 2: SEO/keyword research · Agent 3: critical review and synthesis.<br>This may take a few minutes.</div>' ;
+  if(box)box.innerHTML='<div class="empty-state"><b>GEORUSH 3-Agent Local Deep Research running...</b><br>Agent 1: competitor research · Agent 2: SEO/keyword research · Agent 3: critical review and synthesis.<br>This may take a few minutes.</div>' ;
   try{
     const keywords=KEYWORDS.slice(0,10).map(x=>x.query);
     const d=await api('/api/research/multi-agent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,keywords,competitor_limit:5})});
@@ -169,7 +170,7 @@ function intelligenceHtml(d){
   const comps=d?.competitors?.competitors||[];
   const radar=d?.radar?.summary||{};
   const rec=d?.recommendations||[];
-  const gem=d?.gemini||{};
+  const gem=d?.ollama||{};
   const gemOk=gem && gem.success!==false && Array.isArray(gem.recommendations);
   const gemRows=gemOk ? gem.recommendations : [];
   const actionPlan=gemOk ? (gem.action_plan||[]) : [];
@@ -178,10 +179,10 @@ function intelligenceHtml(d){
   ${comps.length?`<table class="report-table"><thead><tr><th>Competitor</th><th>Signal Score</th><th>Words</th><th>H1</th><th>Response</th><th>HTTPS</th></tr></thead><tbody>${comps.map(c=>{const s=c.signals||{};return `<tr><td>${escapeHtml(c.url)}</td><td>${c.signal_score??0}</td><td>${s.word_count??0}</td><td>${s.h1_count??0}</td><td>${c.response_time_ms??0} ms</td><td>${s.https?'Yes':'No'}</td></tr>`}).join('')}</tbody></table>`:'<p>No competitor data returned.</p>'}</div>
   <div class="report-section"><h3>Cloudflare Radar / URL Scanner</h3><p>Radar provides supplementary security, performance, technology and network signals. ${radar.radar_url?`<a href="${escapeHtml(radar.radar_url)}" target="_blank" rel="noopener">Open Cloudflare Radar scan</a>`:'Radar scan link unavailable.'}</p>
   <table class="report-table"><tbody><tr><th>Radar Rank</th><td>${escapeHtml(radar.radar_rank??'Not available')}</td></tr><tr><th>Country</th><td>${escapeHtml(radar.country??'Not available')}</td></tr><tr><th>ASN</th><td>${escapeHtml(radar.asn??'Not available')}</td></tr><tr><th>Security verdict</th><td>${radar.malicious===true?'Malicious verdict reported':'No malicious verdict reported / not available'}</td></tr><tr><th>API status</th><td>${radar.configured?'Configured':'Public Radar link only — API credentials not configured'}</td></tr></tbody></table></div>
-  <div class="report-section"><h3>GEORUSH AI — Google Gemini Agent</h3>${gemOk?`<div class="intel-summary"><b>Overall priority:</b> ${escapeHtml(gem.overall_priority||'—')}<br><b>Executive summary:</b> ${escapeHtml(gem.executive_summary||'—')}<br><small>Model: ${escapeHtml(gem.model||'Google Gemini')} · Evidence-driven GEORUSH agent</small></div>
+  <div class="report-section"><h3>GEORUSH AI — Local Ollama Agent</h3>${gemOk?`<div class="intel-summary"><b>Overall priority:</b> ${escapeHtml(gem.overall_priority||'—')}<br><b>Executive summary:</b> ${escapeHtml(gem.executive_summary||'—')}<br><small>Model: ${escapeHtml(gem.model||'Ollama')} · Evidence-driven GEORUSH agent</small></div>
   <table class="report-table"><thead><tr><th>Priority</th><th>Area</th><th>Finding</th><th>Recommendation</th><th>Evidence</th></tr></thead><tbody>${gemRows.map(r=>`<tr><td>${escapeHtml(r.priority)}</td><td>${escapeHtml(r.area)}</td><td>${escapeHtml(r.finding)}</td><td>${escapeHtml(r.recommendation)}</td><td>${escapeHtml(r.evidence)}</td></tr>`).join('')}</tbody></table>
   ${actionPlan.length?`<h4>AI Action Plan</h4><table class="report-table"><thead><tr><th>Timeframe</th><th>Actions</th></tr></thead><tbody>${actionPlan.map(x=>`<tr><td>${escapeHtml(x.timeframe)}</td><td>${(x.actions||[]).map(a=>escapeHtml(a)).join('<br>')}</td></tr>`).join('')}</tbody></table>`:''}
-  ${gem.data_gaps?.length?`<p><b>Data gaps:</b> ${gem.data_gaps.map(x=>escapeHtml(x)).join(' · ')}</p>`:''}`:`<div class="empty-state"><b>Google Gemini Agent not available.</b><br>${escapeHtml(gem.error||'Configure GEMINI_API_KEY on the GEORUSH API server.')}<br><br><b>GEORUSH fallback recommendations</b><br>${fallbackRec}</div>`}</div>
+  ${gem.data_gaps?.length?`<p><b>Data gaps:</b> ${gem.data_gaps.map(x=>escapeHtml(x)).join(' · ')}</p>`:''}`:`<div class="empty-state"><b>Local Ollama Agent not available.</b><br>${escapeHtml(gem.error||'Start Ollama and ensure the configured local model is installed.')}<br><br><b>GEORUSH fallback recommendations</b><br>${fallbackRec}</div>`}</div>
   <div class="report-section"><h3>GEORUSH Rules-Based Recommendations</h3>${fallbackRec}</div>`;
 }
 

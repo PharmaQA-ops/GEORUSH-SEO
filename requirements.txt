@@ -6,4 +6,3 @@ beautifulsoup4
 lxml
 pydantic-settings
 pywebview>=5.4
-google-genai>=1.0.0

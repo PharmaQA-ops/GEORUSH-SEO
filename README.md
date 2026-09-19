@@ -43,3 +43,10 @@ This repository is prepared for a cloud-hosted FastAPI crawler. GitHub Pages ser
 The marketing team only needs the GitHub Pages URL; they do not need Python or this local API setup.
 
 See `RENDER-DEPLOY.md` for the exact cloud deployment sequence.
+
+
+## Step 27 — Local Ollama AI
+GEORUSH can run its three AI research agents locally through Ollama. No Gemini/OpenRouter/Groq API key is required. Default test model: `qwen3:1.7b`. See `STEP27.txt`.
+
+## Step 28 — One-click Windows operation
+GEORUSH now automatically starts/reuses Ollama, verifies the configured model, starts the local API, and opens the desktop UI. Users do not need to run PowerShell commands every day. See STEP28.txt.

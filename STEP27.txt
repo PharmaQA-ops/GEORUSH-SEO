@@ -1,0 +1,35 @@
+GEORUSH SEO — STEP 27
+LOCAL OLLAMA 3-AGENT DEEP RESEARCH
+
+What changed
+- Replaced the Step 26 Gemini multi-agent dependency with local Ollama.
+- Added ollama_agent.py for local /api/chat communication.
+- Added Ollama status endpoints.
+- Full Intelligence now uses the local Ollama agent.
+- 3-Agent Deep Research uses three sequential Ollama calls:
+  1. Competitor Researcher
+  2. SEO / Keyword Researcher
+  3. Critical Reviewer + Report Synthesizer
+- No AI API key is required.
+- Python still performs public web search/page retrieval; Ollama performs local reasoning.
+- Agents run sequentially to reduce RAM pressure on low-spec machines.
+
+Default test model
+OLLAMA_MODEL=qwen3:1.7b
+
+Ollama URL
+http://127.0.0.1:11434
+
+Test
+1. Install/start Ollama.
+2. Pull the configured model: ollama pull qwen3:1.7b
+3. Start GEORUSH: uvicorn main:app --reload --port 8000
+4. Check: http://127.0.0.1:8000/api/ai/status
+5. Run an audit.
+6. Use Reports -> 3-Agent Deep Research.
+
+Production
+On the marketing laptop, keep the same Ollama API integration and change OLLAMA_MODEL to a stronger model supported by the hardware.
+
+Security
+No Ollama API key is stored. Do not expose Ollama's port to the public Internet. Keep it bound to localhost unless an authenticated internal server design is intentionally configured.
