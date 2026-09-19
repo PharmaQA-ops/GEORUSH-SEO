@@ -23,7 +23,7 @@ PORT = int(os.getenv("GEORUSH_PORT", "8000"))
 OLLAMA_HOST = "127.0.0.1"
 OLLAMA_PORT = int(os.getenv("OLLAMA_PORT", "11434"))
 OLLAMA_BASE_URL = f"http://{OLLAMA_HOST}:{OLLAMA_PORT}"
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:1.7b")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:0.6b")
 STARTUP_TIMEOUT = int(os.getenv("GEORUSH_STARTUP_TIMEOUT", "120"))
 
 ollama_process = None

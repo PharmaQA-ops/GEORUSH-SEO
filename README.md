@@ -56,3 +56,7 @@ GEORUSH now automatically starts/reuses Ollama, verifies the configured model, s
 Deep Research now runs as a background job. The browser starts a job and polls its status, so long Ollama runs do not hit a frontend HTTP timeout.
 
 New endpoints: POST /api/research/multi-agent/start and GET /api/research/multi-agent/status/{job_id}.
+
+
+### Step 31 — Ultra Low-RAM Ollama
+Default local model is qwen3:0.6b with compact context/output settings for 4 GB RAM test machines.

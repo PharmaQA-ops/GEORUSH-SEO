@@ -7,8 +7,8 @@ import re
 import httpx
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:1.7b")
-TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "300"))
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:0.6b")
+TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "180"))
 
 class OllamaAgentError(RuntimeError):
     pass
@@ -40,10 +40,10 @@ def _extract_json(text: str):
     return {"raw":text}
 
 def chat(system: str, evidence: dict, previous: dict | None = None) -> dict:
-    evidence_text=json.dumps(evidence, ensure_ascii=False, default=str)[:14000]
+    evidence_text=json.dumps(evidence, ensure_ascii=False, default=str)[:6000]
     prompt=system+"\n\nEVIDENCE PACK (use only this evidence):\n"+evidence_text
     if previous:
-        prompt+="\n\nPRIOR AGENT OUTPUTS:\n"+json.dumps(previous, ensure_ascii=False, default=str)[:8000]
+        prompt+="\n\nPRIOR AGENT OUTPUTS:\n"+json.dumps(previous, ensure_ascii=False, default=str)[:3500]
     payload={
         "model":OLLAMA_MODEL,
         "messages":[
@@ -54,7 +54,7 @@ def chat(system: str, evidence: dict, previous: dict | None = None) -> dict:
         "format":"json",
         "think":False,
         "keep_alive":"0",
-        "options":{"temperature":0.2,"num_ctx":3072,"num_predict":450}
+        "options":{"temperature":0.2,"num_ctx":1024,"num_predict":220}
     }
     try:
         r=httpx.post(f"{OLLAMA_BASE_URL}/api/chat",json=payload,timeout=TIMEOUT)

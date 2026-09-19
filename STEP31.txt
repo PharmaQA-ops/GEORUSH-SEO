@@ -1,0 +1,18 @@
+GEORUSH SEO — STEP 31 — ULTRA LOW-RAM OLLAMA
+
+Purpose: make 3-agent local research workable on a 4 GB RAM test PC.
+
+Changes:
+- Default model: qwen3:0.6b
+- Ollama inference timeout: 180 seconds per agent
+- Context window: 1024 tokens
+- Output limit: 220 tokens
+- Evidence sent to each agent: 6000 chars
+- Previous agent context: 3500 chars
+- Web page extraction: 1200 chars/page
+- Ollama thinking disabled
+- Desktop launcher auto-pulls configured model if missing
+
+The three agents remain sequential: Competitor Researcher -> SEO/Keyword Researcher -> Critical Reviewer/Synthesizer.
+
+This is a low-RAM functional test configuration. A stronger model can be selected later on the marketing laptop.
