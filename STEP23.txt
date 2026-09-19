@@ -1,0 +1,3 @@
+GEORUSH SEO Step 23 — Desktop Print Fix
+Print / Save PDF no longer opens about:blank or a new window.
+It uses the current GEORUSH window and keeps the report/charts printable.

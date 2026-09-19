@@ -1,0 +1,9 @@
+GEORUSH SEO Step 22 — Report Charts + Print Fix
+
+Added:
+- Issue mix pie chart
+- Words-by-page bar chart
+- Chart styling in dashboard reports
+- Charts included in downloaded HTML report
+- Print / Save PDF now uses the current report page and does not open a popup
+- Removed dependency on a popup/new tab for printing
