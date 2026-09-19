@@ -1,0 +1,16 @@
+GEORUSH SEO - STEP 29
+ASYNC OLLAMA DEEP RESEARCH
+
+Fixes:
+- Multi-agent research runs as a background job.
+- Browser polls job status instead of waiting for one long HTTP request.
+- Ollama timeout increased to 600 seconds per agent.
+- Evidence payload reduced for low-RAM testing machines.
+- Competitor page extraction reduced to 7,000 chars/page.
+- Three agents remain sequential.
+
+Endpoints:
+POST /api/research/multi-agent/start
+GET /api/research/multi-agent/status/{job_id}
+
+Recommended test model on 4 GB PC: qwen3:1.7b.

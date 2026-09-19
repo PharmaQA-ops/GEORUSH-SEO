@@ -50,3 +50,9 @@ GEORUSH can run its three AI research agents locally through Ollama. No Gemini/O
 
 ## Step 28 — One-click Windows operation
 GEORUSH now automatically starts/reuses Ollama, verifies the configured model, starts the local API, and opens the desktop UI. Users do not need to run PowerShell commands every day. See STEP28.txt.
+
+
+## Step 29 - Async Deep Research
+Deep Research now runs as a background job. The browser starts a job and polls its status, so long Ollama runs do not hit a frontend HTTP timeout.
+
+New endpoints: POST /api/research/multi-agent/start and GET /api/research/multi-agent/status/{job_id}.

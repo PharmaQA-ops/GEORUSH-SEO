@@ -1,4 +1,7 @@
 import os
+import threading
+import time
+import uuid
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -160,6 +163,41 @@ class DeepResearchRequest(BaseModel):
     keywords: list[str] = Field(default_factory=list)
     competitor_limit: int = Field(default=5, ge=1, le=10)
 
+# Long-running research jobs run in a background thread so the browser does not
+# have to keep one HTTP request open for the entire multi-agent run.
+RESEARCH_JOBS = {}
+RESEARCH_LOCK = threading.Lock()
+
+def _run_research_job(job_id: str, req: DeepResearchRequest):
+    with RESEARCH_LOCK:
+        RESEARCH_JOBS[job_id] = {"job_id": job_id, "status": "running", "progress": 5, "stage": "Preparing web research", "started_at": time.time()}
+    try:
+        with RESEARCH_LOCK:
+            RESEARCH_JOBS[job_id].update({"progress": 20, "stage": "Collecting competitor and web evidence"})
+        result = run_multi_research(req.target, req.keywords, req.competitor_limit)
+        with RESEARCH_LOCK:
+            RESEARCH_JOBS[job_id].update({"status": "completed", "progress": 100, "stage": "Report ready", "result": result, "finished_at": time.time()})
+    except Exception as exc:
+        with RESEARCH_LOCK:
+            RESEARCH_JOBS[job_id].update({"status": "failed", "progress": 100, "stage": "Research failed", "error": str(exc), "finished_at": time.time()})
+
+@app.post("/api/research/multi-agent/start")
+def start_multi_agent_research(req: DeepResearchRequest):
+    job_id = uuid.uuid4().hex
+    with RESEARCH_LOCK:
+        RESEARCH_JOBS[job_id] = {"job_id": job_id, "status": "queued", "progress": 0, "stage": "Queued", "target": req.target, "started_at": None}
+    threading.Thread(target=_run_research_job, args=(job_id, req), daemon=True).start()
+    return {"success": True, "job_id": job_id, "status": "queued", "provider": "Ollama Multi-Agent Research"}
+
+@app.get("/api/research/multi-agent/status/{job_id}")
+def multi_agent_research_status(job_id: str):
+    with RESEARCH_LOCK:
+        job = RESEARCH_JOBS.get(job_id)
+        if not job:
+            return {"success": False, "error": "RESEARCH_JOB_NOT_FOUND"}
+        return {"success": True, **job}
+
+# Backward-compatible synchronous endpoint for other API clients.
 @app.post("/api/research/multi-agent")
 def multi_agent_research(req: DeepResearchRequest):
     try:

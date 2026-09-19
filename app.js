@@ -140,7 +140,17 @@ async function runMultiAgentResearch(){
   if(box)box.innerHTML='<div class="empty-state"><b>GEORUSH 3-Agent Local Deep Research running...</b><br>Agent 1: competitor research · Agent 2: SEO/keyword research · Agent 3: critical review and synthesis.<br>This may take a few minutes.</div>' ;
   try{
     const keywords=KEYWORDS.slice(0,10).map(x=>x.query);
-    const d=await api('/api/research/multi-agent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,keywords,competitor_limit:5})});
+    const started=await api('/api/research/multi-agent/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,keywords,competitor_limit:5}),timeoutMs:30000});
+    if(!started.success)throw new Error(started.error||'Could not start research');
+    let d=null;
+    for(let i=0;i<900;i++){
+      await new Promise(r=>setTimeout(r,2000));
+      const st=await api('/api/research/multi-agent/status/'+encodeURIComponent(started.job_id),{timeoutMs:30000});
+      if(box)box.innerHTML='<div class="empty-state"><b>GEORUSH 3-Agent Local Deep Research</b><br>'+escapeHtml(st.stage||'Researching...')+'<br>Progress: '+Number(st.progress||0)+'%<br><small>Job: '+escapeHtml(started.job_id)+'</small></div>';
+      if(st.status==='completed'){d=st.result;break;}
+      if(st.status==='failed')throw new Error(st.error||'Research failed');
+    }
+    if(!d)throw new Error('Research job is still running. Check Reports again shortly.');
     if(!d.success)throw new Error(d.error||'Research failed');
     const r=d.report||{}; const c=d.agents?.competitor||{}; const seo=d.agents?.seo||{};
     const rows=(r.critical_findings||[]).map(x=>`<tr><td>${escapeHtml(x.priority||'—')}</td><td>${escapeHtml(x.finding||x.area||'—')}</td><td>${escapeHtml(x.recommendation||x.action||'—')}</td></tr>`).join('');

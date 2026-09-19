@@ -8,7 +8,7 @@ import httpx
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:1.7b")
-TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "180"))
+TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "600"))
 
 
 class OllamaAgentError(RuntimeError):
@@ -66,10 +66,10 @@ def chat(system: str, evidence: dict, previous: dict | None = None) -> dict:
     prompt = (
         system
         + "\n\nEVIDENCE PACK:\n"
-        + json.dumps(evidence, ensure_ascii=False, default=str)[:50000]
+        + json.dumps(evidence, ensure_ascii=False, default=str)[:30000]
     )
     if previous:
-        prompt += "\n\nPRIOR AGENT OUTPUTS:\n" + json.dumps(previous, ensure_ascii=False, default=str)[:35000]
+        prompt += "\n\nPRIOR AGENT OUTPUTS:\n" + json.dumps(previous, ensure_ascii=False, default=str)[:18000]
 
     payload = {
         "model": OLLAMA_MODEL,

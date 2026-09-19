@@ -53,7 +53,7 @@ def build_research_pack(target, keywords=None, competitor_limit=5):
     comps=[x.get("url") for x in discovery.get("competitors",[]) if x.get("url")]
     analysis=analyze_competitor_set(target,comps)
     urls=[target]+comps[:competitor_limit]
-    pages=[_fetch(u,12000) for u in urls]
+    pages=[_fetch(u,7000) for u in urls]
     return {"target":target,"keywords":keywords,"search_results":search_results[:30],"competitors":analysis,"pages":pages,"generated_at":time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
 
 
