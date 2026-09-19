@@ -13,8 +13,10 @@ from content import analyze_text
 from analytics import analytics_summary
 from radar import scan_url, get_result, radar_summary
 from ai import ask, generate_report_recommendations, build_ai_context
+from gemini_agent import run_agent, GeminiAgentError
+from multi_research import run_multi_research
 
-app = FastAPI(title="GEORUSH SEO API", version="0.24.0")
+app = FastAPI(title="GEORUSH SEO API", version="0.25.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -25,6 +27,7 @@ app.add_middleware(
 )
 
 SEARCH_INDEX = []
+LAST_CRAWL = {}
 
 class CrawlRequest(BaseModel):
     url: str
@@ -36,10 +39,11 @@ def health():
 
 @app.post("/api/crawl")
 def start_crawl(req: CrawlRequest):
-    global SEARCH_INDEX
+    global SEARCH_INDEX, LAST_CRAWL
     result = crawl(req.url, req.max_pages)
     result["seo_score"] = calculate_score(result.get("results", []))
     SEARCH_INDEX = result.get("results", [])
+    LAST_CRAWL = result
     return result
 
 class GSCRequest(BaseModel):
@@ -129,11 +133,91 @@ def full_intelligence(req: IntelligenceRequest):
             radar_data["summary"]=radar_summary(target, radar_data["result"])
         else:
             radar_data["summary"]=radar_summary(target)
-    crawl={"results":SEARCH_INDEX,"pages":len(SEARCH_INDEX),"issues":sum(len(x.get("issues",[]) or []) for x in SEARCH_INDEX)}
+    crawl = LAST_CRAWL or {"results":SEARCH_INDEX,"pages":len(SEARCH_INDEX),"issues":sum(len(x.get("issues",[]) or []) for x in SEARCH_INDEX)}
     # Score isn't retained separately in the API index, so the report can still use issue-level context.
     context=build_ai_context(crawl=crawl, keywords=req.keywords, competitors=comp.get("competitors",[]), radar=radar_data.get("summary",{}))
     ai=generate_report_recommendations(crawl=crawl, competitors=comp.get("competitors",[]), keywords=req.keywords, radar=radar_data.get("summary",{}))
-    return {"target":target,"competitors":comp,"radar":radar_data,"recommendations":ai,"ai":context}
+    agent_context={
+        "target": target,
+        "crawl": crawl,
+        "keywords":[{"query": str(k)} for k in req.keywords],
+        "competitors": comp.get("competitors",[]),
+        "competitor_analysis": comp,
+        "radar": radar_data.get("summary",{}),
+    }
+    try:
+        gemini=run_agent(agent_context)
+    except GeminiAgentError as exc:
+        gemini={"success":False,"error":str(exc),"mode":"configuration_error","provider":"Google Gemini"}
+    except Exception as exc:
+        gemini={"success":False,"error":f"Gemini agent failed: {exc}","mode":"runtime_error","provider":"Google Gemini"}
+    return {"target":target,"competitors":comp,"radar":radar_data,"recommendations":ai,"ai":context,"gemini":gemini}
+
+
+class DeepResearchRequest(BaseModel):
+    target: str
+    keywords: list[str] = Field(default_factory=list)
+    competitor_limit: int = Field(default=5, ge=1, le=10)
+
+@app.post("/api/research/multi-agent")
+def multi_agent_research(req: DeepResearchRequest):
+    try:
+        return run_multi_research(req.target, req.keywords, req.competitor_limit)
+    except Exception as exc:
+        return {"success":False,"error":str(exc),"provider":"Google Gemini Multi-Agent Research"}
+
+class GeminiAgentRequest(BaseModel):
+    target: str
+    keywords: list[dict] = Field(default_factory=list)
+    use_existing_intelligence: bool = True
+
+@app.get("/api/ai/status")
+def ai_status():
+    return {
+        "provider": "Google Gemini",
+        "configured": bool(os.getenv("GEMINI_API_KEY", "").strip()),
+        "model": os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
+        "agent": "GEORUSH AI SEO Analyst",
+        "api": "Interactions API",
+    }
+
+@app.post("/api/ai/gemini")
+def gemini_ai(req: GeminiAgentRequest):
+    crawl = LAST_CRAWL or {"results": SEARCH_INDEX, "pages": len(SEARCH_INDEX), "issues": sum(len(x.get("issues", []) or []) for x in SEARCH_INDEX)}
+    competitor_data = {}
+    radar_data = {}
+    if req.use_existing_intelligence:
+        try:
+            discovery = discover_competitors(req.target, [str(k.get("query", "")) for k in req.keywords if isinstance(k, dict)], 5)
+            urls = [x["url"] for x in discovery.get("competitors", [])]
+            competitor_data = analyze_competitor_set(req.target, urls)
+        except Exception as exc:
+            competitor_data = {"error": str(exc), "competitors": []}
+        try:
+            submission = scan_url(req.target)
+            radar_data = submission
+            if submission.get("scan", {}).get("uuid"):
+                radar_data["result"] = get_result(submission["scan"]["uuid"])
+                radar_data["summary"] = radar_summary(req.target, radar_data["result"])
+            else:
+                radar_data["summary"] = radar_summary(req.target)
+        except Exception as exc:
+            radar_data = {"error": str(exc), "summary": {"configured": False}}
+
+    context = {
+        "target": req.target,
+        "crawl": crawl,
+        "keywords": req.keywords,
+        "competitors": competitor_data.get("competitors", []),
+        "competitor_analysis": competitor_data,
+        "radar": radar_data.get("summary", radar_data),
+    }
+    try:
+        return run_agent(context)
+    except GeminiAgentError as exc:
+        return {"success": False, "error": str(exc), "provider": "Google Gemini", "mode": "configuration_error"}
+    except Exception as exc:
+        return {"success": False, "error": f"Gemini agent failed: {exc}", "provider": "Google Gemini", "mode": "runtime_error"}
 
 class SearchRequest(BaseModel):
     query: str

@@ -132,6 +132,32 @@ async function runRadar(url){
     INTELLIGENCE.radar=d; return d;
   }catch(e){return {error:e.message||'Radar unavailable'};}
 }
+async function runMultiAgentResearch(){
+  const target=$('#site')?.value.trim(); if(!target)return;
+  const btn=$('#deepResearch'); if(btn)btn.disabled=true;
+  const box=$('#deepResearchResult');
+  if(box)box.innerHTML='<div class="empty-state"><b>GEORUSH 3-Agent Deep Research running...</b><br>Agent 1: competitor research · Agent 2: SEO/keyword research · Agent 3: critical review and synthesis.<br>This may take a few minutes.</div>' ;
+  try{
+    const keywords=KEYWORDS.slice(0,10).map(x=>x.query);
+    const d=await api('/api/research/multi-agent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,keywords,competitor_limit:5})});
+    if(!d.success)throw new Error(d.error||'Research failed');
+    const r=d.report||{}; const c=d.agents?.competitor||{}; const seo=d.agents?.seo||{};
+    const rows=(r.critical_findings||[]).map(x=>`<tr><td>${escapeHtml(x.priority||'—')}</td><td>${escapeHtml(x.finding||x.area||'—')}</td><td>${escapeHtml(x.recommendation||x.action||'—')}</td></tr>`).join('');
+    const opp=(r.opportunities||[]).map(x=>`<li>${escapeHtml(typeof x==='string'?x:(x.opportunity||x.action||JSON.stringify(x)))}</li>`).join('');
+    const plan=(r.action_plan||[]).map(x=>`<tr><td>${escapeHtml(x.timeframe||'—')}</td><td>${(x.actions||[]).map(a=>escapeHtml(a)).join('<br>')}</td></tr>`).join('');
+    box.innerHTML=`<div class="report-header"><h2>GEORUSH AI — 3-Agent Deep Research</h2><p>${escapeHtml(target)} · ${new Date().toLocaleString()}</p></div>
+    <div class="intel-summary"><b>Executive summary:</b> ${escapeHtml(r.executive_summary||'—')}<br><b>Confidence:</b> ${escapeHtml(r.confidence||'—')}<br><b>Top competitor:</b> ${escapeHtml(r.top_competitor||'—')}<br><small>Three-agent research: competitor analyst + SEO/keyword analyst + critical reviewer.</small></div>
+    ${rows?`<h3>Critical Findings</h3><table class="report-table"><thead><tr><th>Priority</th><th>Finding</th><th>Recommendation</th></tr></thead><tbody>${rows}</tbody></table>`:''}
+    ${opp?`<h3>Opportunities</h3><ul>${opp}</ul>`:''}
+    ${plan?`<h3>Action Plan</h3><table class="report-table"><thead><tr><th>Timeframe</th><th>Actions</th></tr></thead><tbody>${plan}</tbody></table>`:''}
+    <h3>Research Evidence</h3><p>${d.evidence?.search_results?.length||0} search result records and ${d.evidence?.pages?.length||0} website pages were collected for the agents.</p>
+    <details><summary>Agent 1 — Competitor Research</summary><pre>${escapeHtml(JSON.stringify(c,null,2))}</pre></details>
+    <details><summary>Agent 2 — SEO / Keyword Research</summary><pre>${escapeHtml(JSON.stringify(seo,null,2))}</pre></details>
+    <details><summary>Agent 3 — Critical Review</summary><pre>${escapeHtml(JSON.stringify(r,null,2))}</pre></details>
+    <p><b>Limitations:</b> ${(r.limitations||[]).map(x=>escapeHtml(x)).join(' · ')||'None reported.'}</p>`;
+  }catch(e){if(box)box.innerHTML=`<div class="empty-state"><b>Deep research failed.</b><br>${escapeHtml(e.message||'API unavailable')}</div>`;}
+  finally{if(btn)btn.disabled=false;}
+}
 async function buildFullIntelligence(){
   const target=$('#site')?.value.trim();if(!target)return null;
   const keywords=KEYWORDS.slice(0,8).map(x=>x.query);
@@ -143,11 +169,20 @@ function intelligenceHtml(d){
   const comps=d?.competitors?.competitors||[];
   const radar=d?.radar?.summary||{};
   const rec=d?.recommendations||[];
+  const gem=d?.gemini||{};
+  const gemOk=gem && gem.success!==false && Array.isArray(gem.recommendations);
+  const gemRows=gemOk ? gem.recommendations : [];
+  const actionPlan=gemOk ? (gem.action_plan||[]) : [];
+  const fallbackRec=rec.length ? `<table class="report-table"><thead><tr><th>Priority</th><th>Area</th><th>Recommendation</th></tr></thead><tbody>${rec.map(r=>`<tr><td>${escapeHtml(r.priority)}</td><td>${escapeHtml(r.area)}</td><td>${escapeHtml(r.action)}</td></tr>`).join('')}</tbody></table>` : '<p>No rules-based recommendations generated.</p>';
   return `<div class="report-section"><h3>Automatic Competitor Analysis</h3><p>GEORUSH discovered and inspected ${comps.length} competitor domain(s) using the target's keyword/topic signals.</p>
   ${comps.length?`<table class="report-table"><thead><tr><th>Competitor</th><th>Signal Score</th><th>Words</th><th>H1</th><th>Response</th><th>HTTPS</th></tr></thead><tbody>${comps.map(c=>{const s=c.signals||{};return `<tr><td>${escapeHtml(c.url)}</td><td>${c.signal_score??0}</td><td>${s.word_count??0}</td><td>${s.h1_count??0}</td><td>${c.response_time_ms??0} ms</td><td>${s.https?'Yes':'No'}</td></tr>`}).join('')}</tbody></table>`:'<p>No competitor data returned.</p>'}</div>
   <div class="report-section"><h3>Cloudflare Radar / URL Scanner</h3><p>Radar provides supplementary security, performance, technology and network signals. ${radar.radar_url?`<a href="${escapeHtml(radar.radar_url)}" target="_blank" rel="noopener">Open Cloudflare Radar scan</a>`:'Radar scan link unavailable.'}</p>
   <table class="report-table"><tbody><tr><th>Radar Rank</th><td>${escapeHtml(radar.radar_rank??'Not available')}</td></tr><tr><th>Country</th><td>${escapeHtml(radar.country??'Not available')}</td></tr><tr><th>ASN</th><td>${escapeHtml(radar.asn??'Not available')}</td></tr><tr><th>Security verdict</th><td>${radar.malicious===true?'Malicious verdict reported':'No malicious verdict reported / not available'}</td></tr><tr><th>API status</th><td>${radar.configured?'Configured':'Public Radar link only — API credentials not configured'}</td></tr></tbody></table></div>
-  <div class="report-section"><h3>GEORUSH AI Recommendations</h3>${rec.length?`<table class="report-table"><thead><tr><th>Priority</th><th>Area</th><th>Recommendation</th></tr></thead><tbody>${rec.map(r=>`<tr><td>${escapeHtml(r.priority)}</td><td>${escapeHtml(r.area)}</td><td>${escapeHtml(r.action)}</td></tr>`).join('')}</tbody></table>`:'<p>No additional recommendations generated.</p>'}</div>`;
+  <div class="report-section"><h3>GEORUSH AI — Google Gemini Agent</h3>${gemOk?`<div class="intel-summary"><b>Overall priority:</b> ${escapeHtml(gem.overall_priority||'—')}<br><b>Executive summary:</b> ${escapeHtml(gem.executive_summary||'—')}<br><small>Model: ${escapeHtml(gem.model||'Google Gemini')} · Evidence-driven GEORUSH agent</small></div>
+  <table class="report-table"><thead><tr><th>Priority</th><th>Area</th><th>Finding</th><th>Recommendation</th><th>Evidence</th></tr></thead><tbody>${gemRows.map(r=>`<tr><td>${escapeHtml(r.priority)}</td><td>${escapeHtml(r.area)}</td><td>${escapeHtml(r.finding)}</td><td>${escapeHtml(r.recommendation)}</td><td>${escapeHtml(r.evidence)}</td></tr>`).join('')}</tbody></table>
+  ${actionPlan.length?`<h4>AI Action Plan</h4><table class="report-table"><thead><tr><th>Timeframe</th><th>Actions</th></tr></thead><tbody>${actionPlan.map(x=>`<tr><td>${escapeHtml(x.timeframe)}</td><td>${(x.actions||[]).map(a=>escapeHtml(a)).join('<br>')}</td></tr>`).join('')}</tbody></table>`:''}
+  ${gem.data_gaps?.length?`<p><b>Data gaps:</b> ${gem.data_gaps.map(x=>escapeHtml(x)).join(' · ')}</p>`:''}`:`<div class="empty-state"><b>Google Gemini Agent not available.</b><br>${escapeHtml(gem.error||'Configure GEMINI_API_KEY on the GEORUSH API server.')}<br><br><b>GEORUSH fallback recommendations</b><br>${fallbackRec}</div>`}</div>
+  <div class="report-section"><h3>GEORUSH Rules-Based Recommendations</h3>${fallbackRec}</div>`;
 }
 
 function reportData(){
@@ -228,4 +263,4 @@ function renderCompetitor(){if(!$('#competitorUrl').value && $('#site').value)$(
 function renderAllModules(){renderKeywordTable();renderRankings();renderAudit();renderContent();renderBacklinks();renderAnalytics();renderCompetitor();}
 function renderModule(page){if(page==='keywords')renderKeywordTable();if(page==='reports')renderReports();if(page==='rankings')renderRankings();if(page==='audit')renderAudit();if(page==='content')renderContent();if(page==='backlinks')renderBacklinks();if(page==='analytics')renderAnalytics();}
 window.GEORUSH={showPage,runCrawl,performSearch};
-document.addEventListener('DOMContentLoaded',()=>{loadSaved();initNavigation();checkAPI();if(LAST_CRAWL)renderResults(LAST_CRAWL);$('#runAudit')?.addEventListener('click',runCrawl);$('#searchBtn')?.addEventListener('click',performSearch);$('#globalSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')performSearch();});$('#inspectCompetitor')?.addEventListener('click',inspectCompetitor);$('#discoverCompetitors')?.addEventListener('click',discoverCompetitors);initKeywords();$('#generateReport')?.addEventListener('click',generateReport);$('#fullIntelReport')?.addEventListener('click',generateReport);$('#downloadReport')?.addEventListener('click',downloadReport);$('#downloadReportCsv')?.addEventListener('click',downloadReportCsv);$('#printReport')?.addEventListener('click',printReport);});
+document.addEventListener('DOMContentLoaded',()=>{loadSaved();initNavigation();checkAPI();if(LAST_CRAWL)renderResults(LAST_CRAWL);$('#runAudit')?.addEventListener('click',runCrawl);$('#searchBtn')?.addEventListener('click',performSearch);$('#globalSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')performSearch();});$('#inspectCompetitor')?.addEventListener('click',inspectCompetitor);$('#discoverCompetitors')?.addEventListener('click',discoverCompetitors);initKeywords();$('#generateReport')?.addEventListener('click',generateReport);$('#fullIntelReport')?.addEventListener('click',generateReport);$('#deepResearch')?.addEventListener('click',runMultiAgentResearch);$('#downloadReport')?.addEventListener('click',downloadReport);$('#downloadReportCsv')?.addEventListener('click',downloadReportCsv);$('#printReport')?.addEventListener('click',printReport);});

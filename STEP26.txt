@@ -1,0 +1,10 @@
+STEP 26 — GEORUSH 3-AGENT DEEP RESEARCH
+
+Added /api/research/multi-agent and a 3-Agent Deep Research UI.
+Agent 1: Competitor Researcher
+Agent 2: SEO + Keyword Researcher
+Agent 3: Critical Reviewer + Report Synthesizer
+
+GEORUSH itself collects public search snippets and competitor/target webpages. The three AI roles analyze the same evidence pack. The final reviewer cross-checks the first two agents and creates the report. No ChatGPT login, browser cookie, password or session scraping is used.
+
+Requires GEMINI_API_KEY on the backend.

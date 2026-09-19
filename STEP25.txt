@@ -1,0 +1,27 @@
+GEORUSH SEO — STEP 25
+Google Gemini AI Agent
+
+Added:
+- gemini_agent.py using Google's Gemini Interactions API.
+- Real function-calling tools for crawl, keywords, competitors and Cloudflare Radar evidence.
+- Structured JSON output for predictable GEORUSH AI recommendations.
+- /api/ai/status endpoint.
+- /api/ai/gemini endpoint.
+- GEORUSH AI agent output can include executive summary, priority, evidence, affected URLs, implementation steps, action plan and data gaps.
+- Gemini API key is server-side only.
+- requirements.txt now includes google-genai.
+- env.example includes GEMINI_API_KEY and GEMINI_MODEL.
+- /api/intelligence/full now preserves the latest crawl score/data for the intelligence layer.
+
+Setup:
+1. Create a Gemini API key in Google AI Studio.
+2. Put GEMINI_API_KEY in the server environment. Do NOT put it in app.js or GitHub Pages.
+3. Install dependencies: pip install -r requirements.txt
+4. Start: uvicorn main:app --reload --port 8000
+5. Check: GET /api/ai/status
+6. The GEORUSH frontend can call POST /api/ai/gemini after an audit.
+
+Model default:
+gemini-3.8-flash
+
+The agent is evidence-driven. It is instructed not to invent rankings, traffic, backlinks, penalties, conversions or business impact that are not supported by GEORUSH data.

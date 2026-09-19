@@ -82,3 +82,8 @@ body.printing-report #reportPreview{
 }
 
 .compare-controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}.compare-controls input{padding:11px;border:1px solid #d5dce3;border-radius:7px;min-width:320px}.compare-controls button{background:#17212d;color:#fff;border:0;border-radius:7px;padding:11px 15px;cursor:pointer}.intel-summary{background:#f8fafc;border:1px solid #e1e7ed;padding:14px;border-radius:8px;margin-bottom:14px}.report-section a{color:#087f68}.report-section a:hover{text-decoration:underline}
+
+/* GEORUSH Step 25 — Gemini agent */
+.gemini-agent-badge{display:inline-flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.08em;font-weight:700;padding:6px 9px;border:1px solid #c9d4ff;border-radius:999px;background:#f5f7ff;color:#324ea8}
+
+#deepResearch{font-weight:700}.report-section pre{white-space:pre-wrap;word-break:break-word;background:#f6f8fa;padding:14px;border-radius:10px;max-height:420px;overflow:auto}.report-section details{margin:12px 0}.report-section h3{margin-top:22px}
