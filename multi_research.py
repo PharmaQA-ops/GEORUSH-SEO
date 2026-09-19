@@ -53,8 +53,9 @@ def build_research_pack(target, keywords=None, competitor_limit=5):
     comps=[x.get("url") for x in discovery.get("competitors",[]) if x.get("url")]
     analysis=analyze_competitor_set(target,comps)
     urls=[target]+comps[:competitor_limit]
-    pages=[_fetch(u,7000) for u in urls]
-    return {"target":target,"keywords":keywords,"search_results":search_results[:30],"competitors":analysis,"pages":pages,"generated_at":time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
+    pages=[_fetch(u,2500) for u in urls]
+    compact_analysis=json.dumps(analysis, ensure_ascii=False, default=str)[:5000]
+    return {"target":target,"keywords":keywords[:8],"search_results":search_results[:12],"competitors":json.loads(compact_analysis) if compact_analysis else {},"pages":pages,"generated_at":time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
 
 
 def run_multi_research(target, keywords=None, competitor_limit=5):

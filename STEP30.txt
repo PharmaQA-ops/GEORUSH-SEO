@@ -1,0 +1,20 @@
+GEORUSH SEO — STEP 30
+LOW-RAM OLLAMA DEEP RESEARCH FIX
+
+Fixes the Step 29 error: "Local Ollama Agent not available. timed out".
+
+Changes:
+- Reduces evidence sent to Ollama substantially.
+- Reduces page extraction to 2,500 characters per page.
+- Limits search evidence to 12 results.
+- Limits Ollama context to 3,072 tokens.
+- Limits output to 450 tokens per agent.
+- Disables Qwen3 thinking for faster deterministic research JSON.
+- Uses keep_alive=0 so one model does not remain loaded between sequential agents on low-RAM PCs.
+- Distinguishes inference timeout from Ollama connection failure.
+- Default Ollama inference timeout is 300 seconds per agent.
+
+Expected flow:
+20% evidence collection -> Agent 1 -> Agent 2 -> Agent 3 -> completed report.
+
+OllAMA_MODEL remains qwen3:1.7b for the 4 GB test PC.
