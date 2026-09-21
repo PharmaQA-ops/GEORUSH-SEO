@@ -1,0 +1,18 @@
+GEORUSH SEO — STEP 32 PRODUCTION INTELLIGENCE
+
+Changes:
+- Fixed exact Ollama model detection so qwen3:0.6b is automatically pulled when missing; qwen3:1.7b no longer incorrectly satisfies the 0.6b check.
+- Added evidence-based Keyword Intelligence endpoint and UI.
+- Added target site title extraction and display.
+- Improved competitor discovery with topic-aware multi-query discovery and relevance scoring.
+- Competitor tables now show domain, site title, relevance and observable SEO signals.
+- Added schema validation/fallbacks for all three Ollama agents so weak/partial model output cannot produce blank reports.
+- Added true job-stage progress for evidence collection, Agent 1, Agent 2 and Agent 3.
+- Added Run Ollama AI button and live Ollama status badge.
+- Deep Research report now shows site title, evidence-based keyword themes, confidence and explicit 'not established' wording where evidence is insufficient.
+- Report company/title defaults now use the crawled site's actual HTML title.
+- Added production-oriented diagnostics and UI for local Ollama execution.
+
+Important data policy:
+- GEORUSH does not fabricate search volume, CPC, traffic, backlinks or Google rankings.
+- Those metrics require Google Search Console or an external SERP/keyword data provider.

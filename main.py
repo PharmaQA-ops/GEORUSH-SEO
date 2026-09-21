@@ -11,6 +11,7 @@ from crawler import crawl
 from score import calculate_score
 from gsc import demo_data, fetch_search_analytics
 from keywords import normalize_gsc_rows, summarize
+from keyword_intelligence import build_keyword_intelligence
 from competitor import inspect_competitor, compare_domains, discover_competitors, analyze_competitor_set
 from content import analyze_text
 from analytics import analytics_summary
@@ -19,7 +20,7 @@ from ai import ask, generate_report_recommendations, build_ai_context
 from ollama_agent import run_agent as ollama_run_agent, OllamaAgentError
 from multi_research import run_multi_research
 
-app = FastAPI(title="GEORUSH SEO API", version="0.28.0")
+app = FastAPI(title="GEORUSH SEO API", version="0.32.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -38,7 +39,7 @@ class CrawlRequest(BaseModel):
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "service": "georush-seo-api", "version": "0.28.0"}
+    return {"status": "ok", "service": "georush-seo-api", "version": "0.32.0"}
 
 @app.post("/api/crawl")
 def start_crawl(req: CrawlRequest):
@@ -74,6 +75,24 @@ def analyze_keywords(req: KeywordRowsRequest):
     rows = normalize_gsc_rows({"rows": req.rows})
     return {"summary": summarize(rows), "rows": rows}
 
+class KeywordIntelligenceRequest(BaseModel):
+    target: str
+    seed_keywords: list[str] = Field(default_factory=list)
+    limit: int = Field(default=40, ge=5, le=100)
+
+@app.post("/api/keywords/intelligence")
+def keyword_intelligence(req: KeywordIntelligenceRequest):
+    crawl = LAST_CRAWL.get("results", []) if LAST_CRAWL else SEARCH_INDEX
+    return build_keyword_intelligence(req.target, crawl, req.seed_keywords, req.limit)
+
+@app.get("/api/site/profile")
+def site_profile(url: str):
+    profile = inspect_competitor(url)
+    signals = profile.get("signals", {})
+    return {"url": url, "title": signals.get("title", ""), "description": signals.get("description", ""),
+            "h1": signals.get("h1", []), "h2": signals.get("h2", []), "status": profile.get("status", 0),
+            "domain": profile.get("domain", ""), "signals": signals}
+
 class CompetitorRequest(BaseModel):
     url: str
 
@@ -90,6 +109,18 @@ def competitor_compare(req: CompetitorCompareRequest):
     return compare_domains(req.target, req.competitors[:10])
 
 
+def _crawl_topic_seeds(target):
+    seeds=[]
+    try:
+        host=target.lower().replace("https://","").replace("http://","").split("/")[0]
+        for item in (LAST_CRAWL.get("results",[]) if LAST_CRAWL else SEARCH_INDEX):
+            if host in str(item.get("url","")).lower():
+                for value in [item.get("title",""),item.get("h1","")]:
+                    if value and value not in seeds: seeds.append(value)
+                if seeds: break
+    except Exception: pass
+    return seeds
+
 class AutoCompetitorRequest(BaseModel):
     target: str
     keywords: list[str] = Field(default_factory=list)
@@ -97,9 +128,14 @@ class AutoCompetitorRequest(BaseModel):
 
 @app.post("/api/competitor/discover")
 def competitor_discover(req: AutoCompetitorRequest):
-    found=discover_competitors(req.target, req.keywords, req.limit)
+    seeds=list(req.keywords or [])
+    if not seeds: seeds=_crawl_topic_seeds(req.target)
+    found=discover_competitors(req.target, seeds, req.limit)
     urls=[x["url"] for x in found.get("competitors",[])]
     analysis=analyze_competitor_set(req.target, urls)
+    if not found.get("site_title"):
+        profile=_crawl_topic_seeds(req.target)
+        found["site_title"]=profile[0] if profile else analysis.get("target",{}).get("signals",{}).get("title","")
     return {**found, **analysis}
 
 class RadarRequest(BaseModel):
@@ -169,14 +205,18 @@ RESEARCH_JOBS = {}
 RESEARCH_LOCK = threading.Lock()
 
 def _run_research_job(job_id: str, req: DeepResearchRequest):
+    def progress(value, stage):
+        with RESEARCH_LOCK:
+            if job_id in RESEARCH_JOBS:
+                RESEARCH_JOBS[job_id].update({"progress": int(value), "stage": stage})
     with RESEARCH_LOCK:
         RESEARCH_JOBS[job_id] = {"job_id": job_id, "status": "running", "progress": 5, "stage": "Preparing web research", "started_at": time.time()}
     try:
+        progress(12, "Collecting target title and topic signals")
+        seeds=list(req.keywords or []) or _crawl_topic_seeds(req.target)
+        result = run_multi_research(req.target, seeds, req.competitor_limit, progress_callback=progress)
         with RESEARCH_LOCK:
-            RESEARCH_JOBS[job_id].update({"progress": 20, "stage": "Collecting competitor and web evidence"})
-        result = run_multi_research(req.target, req.keywords, req.competitor_limit)
-        with RESEARCH_LOCK:
-            RESEARCH_JOBS[job_id].update({"status": "completed", "progress": 100, "stage": "Report ready", "result": result, "finished_at": time.time()})
+            RESEARCH_JOBS[job_id].update({"status": "completed", "progress": 100, "stage": "Research completed · Report ready", "result": result, "finished_at": time.time()})
     except Exception as exc:
         with RESEARCH_LOCK:
             RESEARCH_JOBS[job_id].update({"status": "failed", "progress": 100, "stage": "Research failed", "error": str(exc), "finished_at": time.time()})
@@ -257,7 +297,7 @@ def ollama_ai(req: OllamaAgentRequest):
     }
     try:
         result = ollama_run_agent("""You are the GEORUSH AI SEO Analyst. Analyze the supplied evidence and return JSON with overall_priority, executive_summary, recommendations[{priority,area,finding,recommendation,evidence,affected_urls}], action_plan[{timeframe,actions}], data_gaps[]. Do not invent facts.""", context)
-        return {"success": True, "provider": "Ollama", "model": os.getenv("OLLAMA_MODEL", "qwen3:1.7b"), **result}
+        return {"success": True, "provider": "Ollama", "model": os.getenv("OLLAMA_MODEL", "qwen3:0.6b"), **result}
     except OllamaAgentError as exc:
         return {"success": False, "error": str(exc), "provider": "Ollama", "mode": "runtime_error"}
     except Exception as exc:

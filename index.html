@@ -49,14 +49,16 @@
 <section id="keywords" data-section="keywords" class="module">
   <div class="module-head">
     <div><h2>Keyword Intelligence</h2><p>Analyze GSC keyword exports, identify opportunities and map keywords to crawled pages.</p></div>
-    <span class="badge" id="keywordSource">DEMO / CSV / GSC</span>
+    <span class="badge" id="keywordSource">GSC / EVIDENCE</span>
   </div>
   <div class="keyword-toolbar">
     <input id="keywordFilter" type="search" placeholder="Filter keywords...">
     <select id="keywordIntentFilter"><option value="">All intent</option><option>Informational</option><option>Commercial</option><option>Transactional</option><option>Navigational</option></select>
-    <button id="keywordDemo" type="button">Load demo data</button>
+    <button id="keywordIntelRun" type="button">Run Keyword Intelligence</button><button id="keywordDemo" type="button">Load demo data</button>
     <label class="file-button">Import GSC CSV<input id="keywordCsv" type="file" accept=".csv,text/csv" hidden></label>
   </div>
+  <div id="keywordIntelResult" class="panel-lite"><div class="empty-state">Run Keyword Intelligence after an audit to extract evidence-based keyword themes. Search volume and rankings require GSC or a keyword provider.</div></div>
+  <div id="keywordIntelResult" class="panel-lite"><div class="empty-state">Run Keyword Intelligence after an audit to extract evidence-based keyword themes. Search volume and rankings require GSC or a keyword provider.</div></div>
   <div class="metric-grid" id="keywordMetrics"></div>
   <div class="table-wrap"><table><thead><tr><th>Keyword</th><th>Intent</th><th>Clicks</th><th>Impressions</th><th>CTR</th><th>Position</th><th>Opportunity</th></tr></thead>
   <tbody id="keywordRows"><tr><td colspan="7">Load demo data or import a Google Search Console CSV export.</td></tr></tbody></table></div>
@@ -65,7 +67,7 @@
 <section id="rankings" data-section="rankings" class="module"><div class="module-head"><div><h2>Rankings</h2><p>Organic ranking visibility and landing-page performance.</p></div><span class="badge" id="rankingSource">GSC REQUIRED</span></div><div class="metric-grid" id="rankingMetrics"></div><div class="empty-state" id="rankingEmpty">Real keyword positions require Google Search Console. Run an audit to populate page-level SEO signals below.</div><div class="table-wrap"><table><thead><tr><th>Landing Page</th><th>SEO Score Signal</th><th>Words</th><th>H1</th><th>Issues</th></tr></thead><tbody id="rankingRows"><tr><td colspan="5">Run an audit first.</td></tr></tbody></table></div></section>
 
 <section id="competitors" data-section="competitors" class="module"><div class="module-head"><div><h2>Competitor Intelligence</h2><p>Automatically discover and benchmark the top relevant competitor domains.</p></div><span class="badge">AUTO DISCOVERY</span></div>
-<div class="compare-controls"><input id="competitorUrl" placeholder="Competitor URL e.g. https://example.com"><button id="inspectCompetitor" type="button">Inspect competitor</button><button id="discoverCompetitors" type="button">Auto-discover competitors</button></div>
+<div class="compare-controls"><input id="competitorUrl" placeholder="Competitor URL e.g. https://example.com"><button id="inspectCompetitor" type="button">Inspect competitor</button><button id="discoverCompetitors" type="button">Auto-discover competitors</button></div><div id="competitorProfile" class="intel-summary">Target site title will appear here after an audit or competitor discovery.</div>
 <div id="competitorResult" class="compare-grid"><div class="empty-state">Enter a competitor URL and inspect it.</div></div></section>
 
 <section id="audit" data-section="audit" class="module"><div class="module-head"><div><h2>Site Audit</h2><p>Prioritized technical SEO issues detected by GEORUSH.</p></div><span class="badge" id="auditGrade">NO AUDIT</span></div><div class="metric-grid" id="auditMetrics"></div><div class="issue-grid" id="issueSummary"></div><div class="table-wrap"><table><thead><tr><th>URL</th><th>Status</th><th>Severity</th><th>Issues</th><th>Load</th></tr></thead><tbody id="auditRows"><tr><td colspan="5">Run an audit first.</td></tr></tbody></table></div></section>
@@ -83,7 +85,7 @@
     <input id="reportTitle" value="GEORUSH SEO Audit Report" placeholder="Report title">
     <input id="reportCompany" placeholder="Company / website name">
     <button id="generateReport" type="button">Generate Report</button>
-    <button id="fullIntelReport" type="button">Full Intelligence Report</button><button id="deepResearch" type="button">3-Agent Deep Research</button>
+    <button id="fullIntelReport" type="button">Full Intelligence Report</button><button id="ollamaAI" type="button">Run Ollama AI</button><button id="deepResearch" type="button">3-Agent Deep Research</button><span id="ollamaStatus" class="badge">OLLAMA CHECKING</span>
     <button id="downloadReport" type="button">Download HTML</button>
     <button id="downloadReportCsv" type="button">Export CSV</button>
     <button id="printReport" type="button">Print / Save PDF</button>

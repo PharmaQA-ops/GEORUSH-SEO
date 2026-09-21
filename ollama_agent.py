@@ -19,7 +19,7 @@ def status() -> dict:
         r.raise_for_status()
         data = r.json()
         models = [m.get("name") for m in data.get("models", [])]
-        configured = OLLAMA_MODEL in models or any(str(x).split(":", 1)[0] == OLLAMA_MODEL.split(":", 1)[0] for x in models)
+        configured = OLLAMA_MODEL in models
         return {"provider":"Ollama","online":True,"configured_model":OLLAMA_MODEL,"model_available":configured,"models":models,"base_url":OLLAMA_BASE_URL,"local":True}
     except Exception as exc:
         return {"provider":"Ollama","online":False,"configured_model":OLLAMA_MODEL,"model_available":False,"models":[],"base_url":OLLAMA_BASE_URL,"local":True,"error":str(exc)}
@@ -54,7 +54,7 @@ def chat(system: str, evidence: dict, previous: dict | None = None) -> dict:
         "format":"json",
         "think":False,
         "keep_alive":"0",
-        "options":{"temperature":0.2,"num_ctx":1024,"num_predict":220}
+        "options":{"temperature":0.2,"num_ctx":1024,"num_predict":320}
     }
     try:
         r=httpx.post(f"{OLLAMA_BASE_URL}/api/chat",json=payload,timeout=TIMEOUT)

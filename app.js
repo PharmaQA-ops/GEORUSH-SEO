@@ -36,7 +36,7 @@ function initNavigation(){
 async function checkAPI(){if(!API){$('#apiStatus').textContent='CLOUD API NOT CONFIGURED';return;}try{await api('/api/health');$('#apiStatus').textContent='API ONLINE';}catch{$('#apiStatus').textContent='API OFFLINE';}}
 function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
 function rowHtml(x){return `<tr><td class="url">${escapeHtml(x.url)}</td><td>${x.status_code??''}</td><td>${escapeHtml(x.title||'—')}</td><td>${x.word_count??0}</td><td>${x.response_time_ms??0} ms</td><td>${escapeHtml((x.issues||[]).join(', ')||'None')}</td></tr>`;}
-function renderResults(data){LAST_CRAWL=data; localStorage.setItem('GEORUSH_LAST_CRAWL',JSON.stringify(data));$('#score').textContent=data.seo_score?.total??'—';$('#pages').textContent=data.pages??0;$('#issues').textContent=data.issues??0;$('#status').textContent='COMPLETE';$('#rows').innerHTML=data.results?.length?data.results.map(rowHtml).join(''):'<tr><td colspan="6">No crawl results.</td></tr>';renderAllModules();}
+function renderResults(data){LAST_CRAWL=data; localStorage.setItem('GEORUSH_LAST_CRAWL',JSON.stringify(data));const siteTitle=data.results?.find(x=>x.title)?.title||'';if(siteTitle&&$('#reportCompany')&&!$('#reportCompany').value)$('#reportCompany').value=siteTitle;$('#score').textContent=data.seo_score?.total??'—';$('#pages').textContent=data.pages??0;$('#issues').textContent=data.issues??0;$('#status').textContent='COMPLETE';$('#rows').innerHTML=data.results?.length?data.results.map(rowHtml).join(''):'<tr><td colspan="6">No crawl results.</td></tr>';renderAllModules();}
 function loadSaved(){try{const x=JSON.parse(localStorage.getItem('GEORUSH_LAST_CRAWL')||'null');if(x&&Array.isArray(x.results))LAST_CRAWL=x;}catch{}}
 async function runCrawl(){const url=$('#site')?.value.trim();if(!url){$('#msg').textContent='Enter a website URL.';return;}$('#status').textContent='RUNNING';$('#msg').textContent='Crawling...';$('#runAudit').disabled=true;try{const data=await api('/api/crawl',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,max_pages:25})});renderResults(data);$('#msg').textContent='Audit complete.';}catch(e){$('#status').textContent='API OFFLINE';$('#msg').textContent=!API?'Cloud API is not configured yet. Deploy the API and set api-config.js.':'Crawl failed: '+(e.message||'API unavailable.');}finally{$('#runAudit').disabled=false;}}
 async function performSearch(){const q=$('#globalSearch')?.value.trim().toLowerCase();if(!q){$('#msg').textContent='Enter a search term.';return;}$('#searchBtn').disabled=true;$('#msg').textContent='Searching...';let results=[];let online=false;try{const d=await api('/api/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q,limit:50})});results=d.results||[];online=true;}catch{results=(LAST_CRAWL?.results||[]).filter(x=>`${x.url} ${x.title||''} ${x.description||''} ${x.h1||''} ${(x.issues||[]).join(' ')}`.toLowerCase().includes(q));}$('#rows').innerHTML=results.length?results.map(rowHtml).join(''):'<tr><td colspan="6">No matching results.</td></tr>';$('#msg').textContent=online?`${results.length} result(s) found.`:`${results.length} offline result(s) found.`;$('#searchBtn').disabled=false;showPage('dashboard');}
@@ -94,7 +94,26 @@ function parseCsv(text){
     return {query:v[qi]||'',intent:'Commercial',clicks:Number(v[ci]||0),impressions:Number(v[ii]||0),ctr:Number(ctrRaw||0),position:Number(v[pi]||0)};
   }).filter(x=>x.query);
 }
+function renderKeywordIntel(d){
+  const box=$('#keywordIntelResult'); if(!box)return;
+  const rows=d?.keywords||[];
+  box.innerHTML=`<div class="intel-summary"><b>Site title:</b> ${escapeHtml(d.site_title||'Not detected')} · <b>Pages analyzed:</b> ${d.pages_analyzed||0} · <b>Search evidence:</b> ${d.search_records||0} records</div>
+  <div class="table-wrap"><table class="report-table"><thead><tr><th>Keyword theme</th><th>Intent</th><th>Evidence</th><th>SERP mentions</th><th>Mapped pages</th></tr></thead><tbody>${rows.length?rows.map(x=>`<tr><td><b>${escapeHtml(x.keyword)}</b></td><td>${escapeHtml(x.intent)}</td><td>${x.evidence_score??0}</td><td>${x.serp_mentions??0}</td><td>${escapeHtml((x.mapped_pages||[]).join(' · ')||'Topic evidence')}</td></tr>`).join(''):'<tr><td colspan="5">No evidence-based keyword themes were extracted.</td></tr>'}</tbody></table></div>
+  <p class="report-foot">${escapeHtml((d.limitations||[]).join(' '))}</p>`;
+}
+async function runKeywordIntelligence(){
+  const target=$('#site')?.value.trim(); if(!target)return;
+  const btn=$('#keywordIntelRun'); if(btn)btn.disabled=true;
+  const box=$('#keywordIntelResult'); if(box)box.innerHTML='<div class="empty-state"><b>Keyword Intelligence running...</b><br>Extracting target title, headings, page topics and public search evidence.</div>';
+  try{
+    const seed=KEYWORDS.slice(0,10).map(x=>x.query).filter(Boolean);
+    const d=await api('/api/keywords/intelligence',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,seed_keywords:seed,limit:40}),timeoutMs:60000});
+    $('#keywordSource').textContent='LIVE EVIDENCE'; renderKeywordIntel(d);
+  }catch(e){if(box)box.innerHTML=`<div class="empty-state"><b>Keyword Intelligence failed.</b><br>${escapeHtml(e.message||'API unavailable')}</div>`;}
+  finally{if(btn)btn.disabled=false;}
+}
 function initKeywords(){
+  $('#keywordIntelRun')?.addEventListener('click',runKeywordIntelligence);
   $('#keywordDemo')?.addEventListener('click',()=>{KEYWORDS=demoKeywords();$('#keywordSource').textContent='DEMO DATA';renderKeywordTable();});
   $('#keywordFilter')?.addEventListener('input',renderKeywordTable);
   $('#keywordIntentFilter')?.addEventListener('change',renderKeywordTable);
@@ -104,15 +123,16 @@ function initKeywords(){
   });
 }
 
-
 async function discoverCompetitors(){
   const target=$('#site')?.value.trim(); if(!target)return;
   const btn=$('#discoverCompetitors'); if(btn)btn.disabled=true;
-  if($('#competitorResult'))$('#competitorResult').innerHTML='<div class="empty-state">Discovering relevant competitor domains and analyzing them...</div>';
+  if($('#competitorResult'))$('#competitorResult').innerHTML='<div class="empty-state">Discovering relevant competitor domains, fetching site titles and benchmarking observable SEO signals...</div>';
   try{
     const keywords=KEYWORDS.slice(0,8).map(x=>x.query);
     const d=await api('/api/competitor/discover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,keywords,limit:5})});
     INTELLIGENCE.competitors=d;
+    const profile=d?.target_profile?.signals||{};
+    if($('#competitorProfile'))$('#competitorProfile').innerHTML=`<b>Target:</b> ${escapeHtml(target)}<br><b>Site title:</b> ${escapeHtml(d.site_title||profile.title||'Not detected')}<br><b>Topic signals:</b> ${escapeHtml((d.query_terms||[]).join(' · ')||'Not detected')}`;
     renderCompetitorIntelligence(d);
   }catch(e){
     if($('#competitorResult'))$('#competitorResult').innerHTML=`<div class="empty-state">Competitor discovery failed: ${escapeHtml(e.message||'API unavailable')}</div>`;
@@ -120,24 +140,47 @@ async function discoverCompetitors(){
 }
 function renderCompetitorIntelligence(d){
   const comps=d?.competitors?.competitors||[];
-  const target=d?.competitors?.target||d?.target||{};
+  const profile=d?.target_profile?.signals||d?.competitors?.target?.signals||{};
   if(!$('#competitorResult'))return;
-  if(!comps.length){$('#competitorResult').innerHTML='<div class="empty-state">No automatic competitors were discovered. Add a competitor URL manually.</div>';return;}
-  const ts=target.signals||{};
-  $('#competitorResult').innerHTML=`<div class="intel-summary"><b>Target:</b> ${escapeHtml(d.target||'')} · <b>Top discovered competitor:</b> ${escapeHtml(comps[0].url||'')}</div>
-  <div class="table-wrap"><table><thead><tr><th>Domain</th><th>Signal Score</th><th>Words</th><th>H1</th><th>Response</th><th>Canonical</th><th>HTTPS</th></tr></thead><tbody>${comps.map(c=>{const s=c.signals||{};return `<tr><td><b>${escapeHtml(c.url)}</b></td><td>${c.signal_score??0}</td><td>${s.word_count??0}</td><td>${s.h1_count??0}</td><td>${c.response_time_ms??0} ms</td><td>${s.canonical?'Yes':'No'}</td><td>${s.https?'Yes':'No'}</td></tr>`}).join('')}</tbody></table></div>`;
+  if($('#competitorProfile'))$('#competitorProfile').innerHTML=`<b>Target site title:</b> ${escapeHtml(d.site_title||profile.title||'Not detected')}<br><b>Target H1:</b> ${escapeHtml((profile.h1||[]).join(' · ')||'Not detected')}<br><b>Discovery topics:</b> ${escapeHtml((d.query_terms||[]).join(' · ')||'Not detected')}`;
+  if(!comps.length){$('#competitorResult').innerHTML='<div class="empty-state">No sufficiently relevant competitor domain was established from the collected search evidence. Add a competitor URL manually or broaden the target keywords.</div>';return;}
+  $('#competitorResult').innerHTML=`<div class="intel-summary"><b>Discovered:</b> ${comps.length} relevant domain(s). Signal score is a GEORUSH on-page benchmark, not a Google ranking.</div>
+  <div class="table-wrap"><table><thead><tr><th>Domain</th><th>Site title</th><th>Relevance</th><th>Signal</th><th>Words</th><th>H1</th><th>Canonical</th><th>HTTPS</th></tr></thead><tbody>${comps.map(c=>{const s=c.signals||{};return `<tr><td><b>${escapeHtml(c.domain||c.url)}</b></td><td>${escapeHtml(s.title||c.title||'—')}</td><td>${c.relevance_score??'—'}</td><td>${c.signal_score??0}</td><td>${s.word_count??0}</td><td>${s.h1_count??0}</td><td>${s.canonical?'Yes':'No'}</td><td>${s.https?'Yes':'No'}</td></tr>`}).join('')}</tbody></table></div>`;
 }
+
 async function runRadar(url){
   try{
     const d=await api('/api/radar/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
     INTELLIGENCE.radar=d; return d;
   }catch(e){return {error:e.message||'Radar unavailable'};}
 }
+function renderResearchProgress(st, jobId){
+  const box=$('#deepResearchResult'); if(!box)return;
+  const p=Number(st?.progress||0); const stage=st?.stage||'Researching...';
+  let agent='';
+  if(/Agent 1/.test(stage)) agent='<div class="agent-step active"><b>Agent 1 — Competitor Research</b><span>Local Ollama is analyzing competitor evidence.</span></div>';
+  else if(/Agent 2/.test(stage)) agent='<div class="agent-step active"><b>Agent 2 — SEO & Keyword Research</b><span>Local Ollama is extracting keyword and content opportunities.</span></div>';
+  else if(/Agent 3/.test(stage)) agent='<div class="agent-step active"><b>Agent 3 — Critical Review</b><span>Local Ollama is cross-checking and synthesizing the report.</span></div>';
+  else agent='<div class="agent-step active"><b>Research preparation</b><span>GEORUSH is collecting and structuring public evidence.</span></div>';
+  box.innerHTML=`<div class="research-console"><div class="research-console-head"><div><h3>GEORUSH 3-Agent Local Deep Research</h3><p>${escapeHtml(st?.site_title||st?.target||'')}</p></div><span class="badge">${escapeHtml(st?.status||'RUNNING').toUpperCase()}</span></div><div class="progress-track"><i style="width:${Math.max(0,Math.min(100,p))}%"></i></div><div class="progress-meta"><b>${p}%</b><span>${escapeHtml(stage)}</span></div><div class="agent-steps"><div class="agent-step ${p>=25?'done':''}"><b>Evidence collection</b><span>Search results, target page and competitor pages</span></div>${agent}<div class="agent-step ${p>=92?'done':''}"><b>Final report synthesis</b><span>Agent 3 output and evidence validation</span></div></div><div class="ollama-console"><b>Ollama runtime</b><span>Local inference · ${escapeHtml(st?.model||'configured local model')} · No cloud AI API</span></div><small>Job: ${escapeHtml(jobId||'')}</small></div>`;
+}
+async function runOllamaAI(){
+  const target=$('#site')?.value.trim(); if(!target)return;
+  const btn=$('#ollamaAI'); if(btn)btn.disabled=true;
+  const box=$('#deepResearchResult'); if(box)box.innerHTML='<div class="research-console"><b>Starting Ollama AI...</b><br>Checking local model and preparing the latest audit evidence.</div>';
+  try{
+    const keywords=KEYWORDS.slice(0,10).map(x=>({query:x.query,intent:x.intent}));
+    const d=await api('/api/ai/ollama',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,keywords,use_existing_intelligence:true}),timeoutMs:360000});
+    if(!d.success)throw new Error(d.error||'Ollama AI failed');
+    box.innerHTML=`<div class="research-console"><h3>GEORUSH AI — Ollama Result</h3><div class="intel-summary"><b>Model:</b> ${escapeHtml(d.model||'Ollama')}<br><b>Priority:</b> ${escapeHtml(d.overall_priority||'Not stated')}<br><b>Executive summary:</b> ${escapeHtml(d.executive_summary||'Not stated')}</div>${(d.recommendations||[]).length?`<table class="report-table"><thead><tr><th>Priority</th><th>Area</th><th>Finding</th><th>Recommendation</th></tr></thead><tbody>${d.recommendations.map(x=>`<tr><td>${escapeHtml(x.priority)}</td><td>${escapeHtml(x.area)}</td><td>${escapeHtml(x.finding)}</td><td>${escapeHtml(x.recommendation)}</td></tr>`).join('')}</tbody></table>`:'<p>No structured recommendations returned.</p>'}</div>`;
+  }catch(e){if(box)box.innerHTML=`<div class="empty-state"><b>Ollama AI failed.</b><br>${escapeHtml(e.message||'API unavailable')}</div>`;}
+  finally{if(btn)btn.disabled=false;}
+}
 async function runMultiAgentResearch(){
   const target=$('#site')?.value.trim(); if(!target)return;
   const btn=$('#deepResearch'); if(btn)btn.disabled=true;
   const box=$('#deepResearchResult');
-  if(box)box.innerHTML='<div class="empty-state"><b>GEORUSH 3-Agent Local Deep Research running...</b><br>Agent 1: competitor research · Agent 2: SEO/keyword research · Agent 3: critical review and synthesis.<br>This may take a few minutes.</div>' ;
+  if(box)box.innerHTML='<div class="research-console"><b>GEORUSH 3-Agent Local Deep Research starting...</b><br>Checking local Ollama and preparing evidence.</div>';
   try{
     const keywords=KEYWORDS.slice(0,10).map(x=>x.query);
     const started=await api('/api/research/multi-agent/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,keywords,competitor_limit:5}),timeoutMs:30000});
@@ -146,29 +189,32 @@ async function runMultiAgentResearch(){
     for(let i=0;i<900;i++){
       await new Promise(r=>setTimeout(r,2000));
       const st=await api('/api/research/multi-agent/status/'+encodeURIComponent(started.job_id),{timeoutMs:30000});
-      if(box)box.innerHTML='<div class="empty-state"><b>GEORUSH 3-Agent Local Deep Research</b><br>'+escapeHtml(st.stage||'Researching...')+'<br>Progress: '+Number(st.progress||0)+'%<br><small>Job: '+escapeHtml(started.job_id)+'</small></div>';
+      renderResearchProgress(st,started.job_id);
       if(st.status==='completed'){d=st.result;break;}
       if(st.status==='failed')throw new Error(st.error||'Research failed');
     }
-    if(!d)throw new Error('Research job is still running. Check Reports again shortly.');
+    if(!d)throw new Error('Research job is still running.');
     if(!d.success)throw new Error(d.error||'Research failed');
-    const r=d.report||{}; const c=d.agents?.competitor||{}; const seo=d.agents?.seo||{};
+    const r=d.report||{}, c=d.agents?.competitor||{}, seo=d.agents?.seo||{};
     const rows=(r.critical_findings||[]).map(x=>`<tr><td>${escapeHtml(x.priority||'—')}</td><td>${escapeHtml(x.finding||x.area||'—')}</td><td>${escapeHtml(x.recommendation||x.action||'—')}</td></tr>`).join('');
     const opp=(r.opportunities||[]).map(x=>`<li>${escapeHtml(typeof x==='string'?x:(x.opportunity||x.action||JSON.stringify(x)))}</li>`).join('');
     const plan=(r.action_plan||[]).map(x=>`<tr><td>${escapeHtml(x.timeframe||'—')}</td><td>${(x.actions||[]).map(a=>escapeHtml(a)).join('<br>')}</td></tr>`).join('');
-    box.innerHTML=`<div class="report-header"><h2>GEORUSH AI — 3-Agent Deep Research</h2><p>${escapeHtml(target)} · ${new Date().toLocaleString()}</p></div>
-    <div class="intel-summary"><b>Executive summary:</b> ${escapeHtml(r.executive_summary||'—')}<br><b>Confidence:</b> ${escapeHtml(r.confidence||'—')}<br><b>Top competitor:</b> ${escapeHtml(r.top_competitor||'—')}<br><small>Three-agent research: competitor analyst + SEO/keyword analyst + critical reviewer.</small></div>
+    const title=d.site_title||d.evidence?.site_title||'Site title not detected';
+    box.innerHTML=`<div class="report-header"><h2>GEORUSH AI — 3-Agent Deep Research</h2><p><b>Site title:</b> ${escapeHtml(title)} · ${escapeHtml(target)} · ${new Date().toLocaleString()}</p></div>
+    <div class="intel-summary"><b>Executive summary:</b> ${escapeHtml(r.executive_summary||'Not established from available evidence')}<br><b>Confidence:</b> ${escapeHtml(r.confidence||'Not stated')}<br><b>Top competitor:</b> ${escapeHtml(r.top_competitor||'Not established from available evidence')}<br><small>Three-agent local Ollama research · model ${escapeHtml(d.model||'configured model')}</small></div>
     ${rows?`<h3>Critical Findings</h3><table class="report-table"><thead><tr><th>Priority</th><th>Finding</th><th>Recommendation</th></tr></thead><tbody>${rows}</tbody></table>`:''}
     ${opp?`<h3>Opportunities</h3><ul>${opp}</ul>`:''}
     ${plan?`<h3>Action Plan</h3><table class="report-table"><thead><tr><th>Timeframe</th><th>Actions</th></tr></thead><tbody>${plan}</tbody></table>`:''}
-    <h3>Research Evidence</h3><p>${d.evidence?.search_results?.length||0} search result records and ${d.evidence?.pages?.length||0} website pages were collected for the agents.</p>
+    <h3>Keyword Intelligence</h3><div class="intel-summary">${(seo.keyword_themes||[]).slice(0,12).map(x=>`<b>${escapeHtml(x.keyword||'')}</b> <small>(${escapeHtml(x.intent||'')})</small>`).join(' · ')||'No structured keyword themes returned.'}</div>
+    <h3>Research Evidence</h3><p>${d.evidence?.search_results?.length||0} search result records and ${d.evidence?.pages?.length||0} website pages were collected.</p>
     <details><summary>Agent 1 — Competitor Research</summary><pre>${escapeHtml(JSON.stringify(c,null,2))}</pre></details>
     <details><summary>Agent 2 — SEO / Keyword Research</summary><pre>${escapeHtml(JSON.stringify(seo,null,2))}</pre></details>
     <details><summary>Agent 3 — Critical Review</summary><pre>${escapeHtml(JSON.stringify(r,null,2))}</pre></details>
-    <p><b>Limitations:</b> ${(r.limitations||[]).map(x=>escapeHtml(x)).join(' · ')||'None reported.'}</p>`;
+    <p><b>Limitations:</b> ${(r.limitations||[]).map(x=>escapeHtml(x)).join(' · ')||'No additional limitations reported.'}</p>`;
   }catch(e){if(box)box.innerHTML=`<div class="empty-state"><b>Deep research failed.</b><br>${escapeHtml(e.message||'API unavailable')}</div>`;}
   finally{if(btn)btn.disabled=false;}
 }
+
 async function buildFullIntelligence(){
   const target=$('#site')?.value.trim();if(!target)return null;
   const keywords=KEYWORDS.slice(0,8).map(x=>x.query);
@@ -196,30 +242,33 @@ function intelligenceHtml(d){
   <div class="report-section"><h3>GEORUSH Rules-Based Recommendations</h3>${fallbackRec}</div>`;
 }
 
+async function refreshOllamaStatus(){
+  const el=$('#ollamaStatus'); if(!el)return;
+  try{const d=await api('/api/ai/ollama/status',{timeoutMs:10000}); el.textContent=d.online?(d.model_available?`OLLAMA READY · ${d.configured_model}`:`OLLAMA ONLINE · MODEL MISSING`):'OLLAMA OFFLINE'; el.className='badge '+(d.online&&d.model_available?'ollama-ready':'ollama-warn');}
+  catch{el.textContent='OLLAMA OFFLINE';el.className='badge ollama-warn';}
+}
 function reportData(){
   const ps=pages(), score=LAST_CRAWL?.seo_score||{}, counts={};
   ps.forEach(p=>(p.issues||[]).forEach(i=>counts[i]=(counts[i]||0)+1));
   return {ps,score,counts};
 }
 function chartBarHtml(ps){
-  const items=ps.slice(0,10).map((p,i)=>({label:(p.url||'Page '+(i+1)).replace(/^https?:\/\//,'').replace(/\/$/,'').slice(0,18),value:Number(p.word_count||0)}));
+  const items=ps.slice(0,10).map((p,i)=>({label:(p.url||'Page '+(i+1)).replace(/^https?:\/\//,'').replace(/\/$/,'').slice(0,32),value:Number(p.word_count||0)}));
   const max=Math.max(...items.map(x=>x.value),1);
-  return `<div class="chart-card"><h4>Words by crawled page</h4><p>Page content volume from the latest audit.</p><div class="report-bar-chart">${items.map(x=>`<div class="report-bar" style="--bar-h:${Math.max(4,(x.value/max)*150)}px"><i></i><em>${x.value.toLocaleString()}</em><span>${escapeHtml(x.label)}</span></div>`).join('')}</div></div>`;
+  return `<div class="chart-card"><h4>Words by crawled page</h4><p>Page content volume from the latest audit.</p><div class="report-hbar-chart">${items.map(x=>`<div class="report-hbar-row"><span title="${escapeHtml(x.label)}">${escapeHtml(x.label)}</span><div><i style="width:${Math.max(2,(x.value/max)*100)}%"></i></div><em>${x.value.toLocaleString()}</em></div>`).join('')}</div></div>`;
 }
 function chartPieHtml(counts){
   const entries=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,4);
   if(!entries.length) return `<div class="chart-card"><h4>Issue mix</h4><p>No issues detected.</p></div>`;
-  const total=entries.reduce((n,x)=>n+x[1],0);
-  let acc=0, stops=[];
-  const shades=['#172535','#64748b','#a8b2bd','#d8dee5'];
-  entries.forEach((e,i)=>{const start=acc/total*360;acc+=e[1];const end=acc/total*360;stops.push(`${shades[i]} ${start}deg ${end}deg`)});
-  while(stops.length<4){const s=stops.length===0?'#172535':'#d8dee5';stops.push(`${s} 0deg 0deg`);}
-  return `<div class="chart-card"><h4>Issue mix</h4><p>Distribution of the most frequent detected issues.</p><div class="report-pie-wrap"><div class="report-pie" style="background:conic-gradient(${stops.join(',')})"></div><div class="report-legend">${entries.map((e,i)=>`<div><i style="background:${shades[i]}"></i><span>${escapeHtml(e[0])}: <b>${e[1]}</b></span></div>`).join('')}</div></div></div>`;
+  const total=entries.reduce((n,x)=>n+x[1],0), circ=2*Math.PI*54;
+  const shades=['#172535','#64748b','#a8b2bd','#d8dee5']; let offset=0;
+  const circles=entries.map((e,i)=>{const len=(e[1]/total)*circ;const el=`<circle cx="60" cy="60" r="54" fill="none" stroke="${shades[i]}" stroke-width="20" stroke-dasharray="${len} ${circ-len}" stroke-dashoffset="-${offset}" transform="rotate(-90 60 60)"/>`;offset+=len;return el;}).join('');
+  return `<div class="chart-card"><h4>Issue mix</h4><p>Distribution of the most frequent detected issues.</p><div class="report-pie-wrap"><svg class="report-pie-svg" viewBox="0 0 120 120" role="img" aria-label="Issue mix chart">${circles}<circle cx="60" cy="60" r="42" fill="#fff"/></svg><div class="report-legend">${entries.map((e,i)=>`<div><i style="background:${shades[i]}"></i><span>${escapeHtml(e[0])}: <b>${e[1]}</b></span></div>`).join('')}</div></div></div>`;
 }
 function buildReportHtml(){
   const {ps,score,counts}=reportData();
   const title=$('#reportTitle')?.value.trim()||'GEORUSH SEO Audit Report';
-  const company=$('#reportCompany')?.value.trim()||LAST_CRAWL?.url||'Website';
+  const detectedTitle=LAST_CRAWL?.results?.find(x=>x.title)?.title||''; const company=$('#reportCompany')?.value.trim()||detectedTitle||LAST_CRAWL?.url||'Website';
   const issues=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
   const totalWords=ps.reduce((n,p)=>n+(p.word_count||0),0);
   const totalIssues=Object.values(counts).reduce((a,b)=>a+b,0);
@@ -274,4 +323,4 @@ function renderCompetitor(){if(!$('#competitorUrl').value && $('#site').value)$(
 function renderAllModules(){renderKeywordTable();renderRankings();renderAudit();renderContent();renderBacklinks();renderAnalytics();renderCompetitor();}
 function renderModule(page){if(page==='keywords')renderKeywordTable();if(page==='reports')renderReports();if(page==='rankings')renderRankings();if(page==='audit')renderAudit();if(page==='content')renderContent();if(page==='backlinks')renderBacklinks();if(page==='analytics')renderAnalytics();}
 window.GEORUSH={showPage,runCrawl,performSearch};
-document.addEventListener('DOMContentLoaded',()=>{loadSaved();initNavigation();checkAPI();if(LAST_CRAWL)renderResults(LAST_CRAWL);$('#runAudit')?.addEventListener('click',runCrawl);$('#searchBtn')?.addEventListener('click',performSearch);$('#globalSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')performSearch();});$('#inspectCompetitor')?.addEventListener('click',inspectCompetitor);$('#discoverCompetitors')?.addEventListener('click',discoverCompetitors);initKeywords();$('#generateReport')?.addEventListener('click',generateReport);$('#fullIntelReport')?.addEventListener('click',generateReport);$('#deepResearch')?.addEventListener('click',runMultiAgentResearch);$('#downloadReport')?.addEventListener('click',downloadReport);$('#downloadReportCsv')?.addEventListener('click',downloadReportCsv);$('#printReport')?.addEventListener('click',printReport);});
+document.addEventListener('DOMContentLoaded',()=>{loadSaved();initNavigation();checkAPI();if(LAST_CRAWL)renderResults(LAST_CRAWL);$('#runAudit')?.addEventListener('click',runCrawl);$('#searchBtn')?.addEventListener('click',performSearch);$('#globalSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')performSearch();});$('#inspectCompetitor')?.addEventListener('click',inspectCompetitor);$('#discoverCompetitors')?.addEventListener('click',discoverCompetitors);initKeywords();$('#generateReport')?.addEventListener('click',generateReport);$('#fullIntelReport')?.addEventListener('click',generateReport);$('#ollamaAI')?.addEventListener('click',runOllamaAI);$('#deepResearch')?.addEventListener('click',runMultiAgentResearch);refreshOllamaStatus();setInterval(refreshOllamaStatus,30000);$('#downloadReport')?.addEventListener('click',downloadReport);$('#downloadReportCsv')?.addEventListener('click',downloadReportCsv);$('#printReport')?.addEventListener('click',printReport);});

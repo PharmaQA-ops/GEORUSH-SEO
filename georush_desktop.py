@@ -75,10 +75,7 @@ def model_available():
         r = httpx.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
         r.raise_for_status()
         models = [str(x.get("name", "")) for x in r.json().get("models", [])]
-        if OLLAMA_MODEL in models:
-            return True
-        base = OLLAMA_MODEL.split(":", 1)[0]
-        return any(x.split(":", 1)[0] == base for x in models)
+        return OLLAMA_MODEL in models
     except Exception:
         return False
 
