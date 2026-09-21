@@ -17,6 +17,7 @@ from pathlib import Path
 import httpx
 import uvicorn
 import webview
+from ollama_manager import stop_all as stop_all_ollama
 
 HOST = "127.0.0.1"
 PORT = int(os.getenv("GEORUSH_PORT", "8000"))
@@ -27,114 +28,12 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:0.6b")
 STARTUP_TIMEOUT = int(os.getenv("GEORUSH_STARTUP_TIMEOUT", "120"))
 
 ollama_process = None
-started_ollama = False
 
 
-def log_path():
-    return os.path.join(tempfile.gettempdir(), "GEORUSH-SEO-startup-error.txt")
+def prepare_ollama_for_georush():
+    # Never inherit a system/background Ollama server. GEORUSH owns its runtime.
+    stop_all_ollama()
 
-
-def write_log(message=""):
-    try:
-        with open(log_path(), "a", encoding="utf-8") as f:
-            f.write(f"\n[{time.strftime('%Y-%m-%d %H:%M:%S')}] {message}\n")
-            if message == "":
-                f.write(traceback.format_exc())
-    except Exception:
-        pass
-
-
-def windows_hidden_kwargs():
-    if os.name != "nt":
-        return {}
-    return {"creationflags": subprocess.CREATE_NO_WINDOW}
-
-
-def find_ollama():
-    candidates = [
-        shutil.which("ollama"),
-        os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "Ollama", "ollama.exe"),
-        os.path.join(os.environ.get("PROGRAMFILES", ""), "Ollama", "ollama.exe"),
-    ]
-    for candidate in candidates:
-        if candidate and os.path.isfile(candidate):
-            return candidate
-    return None
-
-
-def ollama_online():
-    try:
-        r = httpx.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=2.5)
-        return r.status_code == 200
-    except Exception:
-        return False
-
-
-def model_available():
-    try:
-        r = httpx.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
-        r.raise_for_status()
-        models = [str(x.get("name", "")) for x in r.json().get("models", [])]
-        return OLLAMA_MODEL in models
-    except Exception:
-        return False
-
-
-def start_ollama():
-    global ollama_process, started_ollama
-    if ollama_online():
-        return True
-
-    exe = find_ollama()
-    if not exe:
-        write_log("Ollama executable was not found. Install Ollama from https://ollama.com/download")
-        return False
-
-    try:
-        env = os.environ.copy()
-        env["OLLAMA_HOST"] = f"{OLLAMA_HOST}:{OLLAMA_PORT}"
-        ollama_process = subprocess.Popen(
-            [exe, "serve"],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            env=env,
-            **windows_hidden_kwargs(),
-        )
-        started_ollama = True
-    except Exception as exc:
-        write_log(f"Could not start Ollama: {exc!r}")
-        return False
-
-    end = time.time() + STARTUP_TIMEOUT
-    while time.time() < end:
-        if ollama_online():
-            return True
-        time.sleep(0.5)
-    write_log("Ollama did not become ready within the startup timeout.")
-    return False
-
-
-def ensure_model():
-    if model_available():
-        return True
-    exe = find_ollama()
-    if not exe:
-        return False
-    try:
-        # First run may need to download the model. Keep it hidden and wait.
-        result = subprocess.run(
-            [exe, "pull", OLLAMA_MODEL],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            timeout=1800,
-            **windows_hidden_kwargs(),
-        )
-        return result.returncode == 0 and model_available()
-    except Exception as exc:
-        write_log(f"Could not pull Ollama model {OLLAMA_MODEL}: {exc!r}")
-        return False
 
 
 def wait_for_port(timeout=STARTUP_TIMEOUT):
@@ -175,18 +74,17 @@ def cleanup():
             pass
 
 
-def startup():
-    if not start_ollama():
-        raise RuntimeError(
-            "Ollama could not be started.\n\n"
-            f"Make sure Ollama is installed. Startup log: {log_path()}"
-        )
+def cleanup():
+    try:
+        stop_all_ollama()
+    except Exception:
+        pass
 
-    if not ensure_model():
-        raise RuntimeError(
-            f"Ollama is running, but model '{OLLAMA_MODEL}' is unavailable.\n\n"
-            f"Startup log: {log_path()}"
-        )
+
+def startup():
+    # Kill any Ollama service left by Windows/Ollama Desktop.
+    # The API will start a GEORUSH-owned Ollama server lazily when Audit/AI is used.
+    prepare_ollama_for_georush()
 
     thread = threading.Thread(target=start_api, daemon=True)
     thread.start()

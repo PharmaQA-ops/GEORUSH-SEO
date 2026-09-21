@@ -19,8 +19,9 @@ from radar import scan_url, get_result, radar_summary
 from ai import ask, generate_report_recommendations, build_ai_context
 from ollama_agent import run_agent as ollama_run_agent, OllamaAgentError
 from multi_research import run_multi_research
+from ollama_manager import ensure_model as ensure_ollama_model, start as start_ollama, stop_all as stop_ollama, status as ollama_runtime_status
 
-app = FastAPI(title="GEORUSH SEO API", version="0.32.0")
+app = FastAPI(title="GEORUSH SEO API", version="0.33.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,13 +38,35 @@ class CrawlRequest(BaseModel):
     url: str
     max_pages: int = Field(default=25, ge=1, le=500)
 
+@app.get("/api/ollama/runtime/status")
+def ollama_runtime():
+    return ollama_runtime_status()
+
+@app.post("/api/ollama/runtime/start")
+def ollama_runtime_start():
+    try:
+        return {"success": True, **ensure_ollama_model()}
+    except Exception as exc:
+        return {"success": False, "error": str(exc), **ollama_runtime_status()}
+
+@app.post("/api/ollama/runtime/stop")
+def ollama_runtime_stop():
+    ok = stop_ollama()
+    return {"success": ok, **ollama_runtime_status()}
+
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "service": "georush-seo-api", "version": "0.32.0"}
+    return {"status": "ok", "service": "georush-seo-api", "version": "0.33.0"}
 
 @app.post("/api/crawl")
 def start_crawl(req: CrawlRequest):
     global SEARCH_INDEX, LAST_CRAWL
+    # Audit starts the GEORUSH-owned local AI runtime. It is stopped when the desktop app signs out/closes.
+    try:
+        ensure_ollama_model()
+    except Exception:
+        # The audit itself remains usable if local AI cannot start.
+        pass
     result = crawl(req.url, req.max_pages)
     result["seo_score"] = calculate_score(result.get("results", []))
     SEARCH_INDEX = result.get("results", [])
@@ -214,6 +237,7 @@ def _run_research_job(job_id: str, req: DeepResearchRequest):
     try:
         progress(12, "Collecting target title and topic signals")
         seeds=list(req.keywords or []) or _crawl_topic_seeds(req.target)
+        ensure_ollama_model()
         result = run_multi_research(req.target, seeds, req.competitor_limit, progress_callback=progress)
         with RESEARCH_LOCK:
             RESEARCH_JOBS[job_id].update({"status": "completed", "progress": 100, "stage": "Research completed · Report ready", "result": result, "finished_at": time.time()})
@@ -296,6 +320,7 @@ def ollama_ai(req: OllamaAgentRequest):
         "radar": radar_data.get("summary", radar_data),
     }
     try:
+        ensure_ollama_model()
         result = ollama_run_agent("""You are the GEORUSH AI SEO Analyst. Analyze the supplied evidence and return JSON with overall_priority, executive_summary, recommendations[{priority,area,finding,recommendation,evidence,affected_urls}], action_plan[{timeframe,actions}], data_gaps[]. Do not invent facts.""", context)
         return {"success": True, "provider": "Ollama", "model": os.getenv("OLLAMA_MODEL", "qwen3:0.6b"), **result}
     except OllamaAgentError as exc:

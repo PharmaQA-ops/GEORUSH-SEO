@@ -1,0 +1,20 @@
+STEP 33 — GEORUSH-OWNED OLLAMA LIFECYCLE
+
+Purpose:
+- GEORUSH stops any pre-existing Ollama Desktop/server process when the desktop app starts.
+- Ollama is NOT kept running as a Windows background service for GEORUSH.
+- Ollama starts lazily when Site Audit, Run Ollama AI, or 3-Agent Deep Research needs local AI.
+- CPU AVX2 is the default runtime for the low-spec 4 GB / GT 710 test machine.
+- GEORUSH owns the runtime and stops it when the desktop app closes/signs out.
+
+New file:
+- ollama_manager.py
+
+New API:
+- GET  /api/ollama/runtime/status
+- POST /api/ollama/runtime/start
+- POST /api/ollama/runtime/stop
+
+Important:
+- Audit remains usable even if local Ollama cannot start; AI features will report the runtime error.
+- Browser beforeunload sends a best-effort stop request; desktop launcher cleanup is authoritative.

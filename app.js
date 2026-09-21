@@ -170,6 +170,7 @@ async function runOllamaAI(){
   const box=$('#deepResearchResult'); if(box)box.innerHTML='<div class="research-console"><b>Starting Ollama AI...</b><br>Checking local model and preparing the latest audit evidence.</div>';
   try{
     const keywords=KEYWORDS.slice(0,10).map(x=>({query:x.query,intent:x.intent}));
+    await api('/api/ollama/runtime/start',{method:'POST',headers:{'Content-Type':'application/json'},timeoutMs:30000});
     const d=await api('/api/ai/ollama',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,keywords,use_existing_intelligence:true}),timeoutMs:360000});
     if(!d.success)throw new Error(d.error||'Ollama AI failed');
     box.innerHTML=`<div class="research-console"><h3>GEORUSH AI — Ollama Result</h3><div class="intel-summary"><b>Model:</b> ${escapeHtml(d.model||'Ollama')}<br><b>Priority:</b> ${escapeHtml(d.overall_priority||'Not stated')}<br><b>Executive summary:</b> ${escapeHtml(d.executive_summary||'Not stated')}</div>${(d.recommendations||[]).length?`<table class="report-table"><thead><tr><th>Priority</th><th>Area</th><th>Finding</th><th>Recommendation</th></tr></thead><tbody>${d.recommendations.map(x=>`<tr><td>${escapeHtml(x.priority)}</td><td>${escapeHtml(x.area)}</td><td>${escapeHtml(x.finding)}</td><td>${escapeHtml(x.recommendation)}</td></tr>`).join('')}</tbody></table>`:'<p>No structured recommendations returned.</p>'}</div>`;
@@ -183,6 +184,7 @@ async function runMultiAgentResearch(){
   if(box)box.innerHTML='<div class="research-console"><b>GEORUSH 3-Agent Local Deep Research starting...</b><br>Checking local Ollama and preparing evidence.</div>';
   try{
     const keywords=KEYWORDS.slice(0,10).map(x=>x.query);
+    await api('/api/ollama/runtime/start',{method:'POST',headers:{'Content-Type':'application/json'},timeoutMs:30000});
     const started=await api('/api/research/multi-agent/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,keywords,competitor_limit:5}),timeoutMs:30000});
     if(!started.success)throw new Error(started.error||'Could not start research');
     let d=null;
@@ -244,7 +246,7 @@ function intelligenceHtml(d){
 
 async function refreshOllamaStatus(){
   const el=$('#ollamaStatus'); if(!el)return;
-  try{const d=await api('/api/ai/ollama/status',{timeoutMs:10000}); el.textContent=d.online?(d.model_available?`OLLAMA READY · ${d.configured_model}`:`OLLAMA ONLINE · MODEL MISSING`):'OLLAMA OFFLINE'; el.className='badge '+(d.online&&d.model_available?'ollama-ready':'ollama-warn');}
+  try{const d=await api('/api/ollama/runtime/status',{timeoutMs:10000}); el.textContent=d.online?(d.model_available?`OLLAMA READY · ${d.configured_model}`:`OLLAMA ONLINE · MODEL MISSING`):'OLLAMA OFFLINE'; el.className='badge '+(d.online&&d.model_available?'ollama-ready':'ollama-warn');}
   catch{el.textContent='OLLAMA OFFLINE';el.className='badge ollama-warn';}
 }
 function reportData(){
@@ -323,4 +325,9 @@ function renderCompetitor(){if(!$('#competitorUrl').value && $('#site').value)$(
 function renderAllModules(){renderKeywordTable();renderRankings();renderAudit();renderContent();renderBacklinks();renderAnalytics();renderCompetitor();}
 function renderModule(page){if(page==='keywords')renderKeywordTable();if(page==='reports')renderReports();if(page==='rankings')renderRankings();if(page==='audit')renderAudit();if(page==='content')renderContent();if(page==='backlinks')renderBacklinks();if(page==='analytics')renderAnalytics();}
 window.GEORUSH={showPage,runCrawl,performSearch};
+
+window.addEventListener('beforeunload',()=>{
+  try{navigator.sendBeacon('/api/ollama/runtime/stop','{}');}catch(e){}
+});
+
 document.addEventListener('DOMContentLoaded',()=>{loadSaved();initNavigation();checkAPI();if(LAST_CRAWL)renderResults(LAST_CRAWL);$('#runAudit')?.addEventListener('click',runCrawl);$('#searchBtn')?.addEventListener('click',performSearch);$('#globalSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')performSearch();});$('#inspectCompetitor')?.addEventListener('click',inspectCompetitor);$('#discoverCompetitors')?.addEventListener('click',discoverCompetitors);initKeywords();$('#generateReport')?.addEventListener('click',generateReport);$('#fullIntelReport')?.addEventListener('click',generateReport);$('#ollamaAI')?.addEventListener('click',runOllamaAI);$('#deepResearch')?.addEventListener('click',runMultiAgentResearch);refreshOllamaStatus();setInterval(refreshOllamaStatus,30000);$('#downloadReport')?.addEventListener('click',downloadReport);$('#downloadReportCsv')?.addEventListener('click',downloadReportCsv);$('#printReport')?.addEventListener('click',printReport);});
