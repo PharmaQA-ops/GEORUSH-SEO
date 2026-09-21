@@ -22,6 +22,9 @@ datas = [
     (str(root / "styles.css"), "."),
     (str(root / "app.js"), "."),
     (str(root / "api-config.js"), "."),
+    (str(root / "georush-logo.png"), "."),
+    (str(root / "georush.ico"), "."),
+    (str(root / "georush-wordmark.png"), "."),
 ]
 
 a = Analysis(
@@ -52,4 +55,5 @@ exe = EXE(
     upx=True,
     console=False,
     disable_windowed_traceback=False,
+    icon=str(root / "georush.ico"),
 )

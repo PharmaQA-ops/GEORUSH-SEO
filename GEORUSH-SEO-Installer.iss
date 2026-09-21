@@ -1,6 +1,6 @@
 
 #define MyAppName "GEORUSH SEO"
-#define MyAppVersion "20.0.0"
+#define MyAppVersion "1.0.0"
 #define MyAppPublisher "GEORUSH"
 #define MyAppExeName "GEORUSH-SEO.exe"
 
@@ -24,6 +24,8 @@ CloseApplications=yes
 
 [Files]
 Source: "dist\GEORUSH-SEO.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "georush.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "georush-wordmark.png"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autodesktop}\GEORUSH SEO"; Filename: "{app}\GEORUSH-SEO.exe"

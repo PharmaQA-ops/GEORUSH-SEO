@@ -1,0 +1,15 @@
+GEORUSH SEO v1.0.0 DEPLOYMENT CHECKLIST
+
+[ ] Correct repository: PharmaQA-ops/GEORUSH-SEO
+[ ] Previous production release archived
+[ ] Python 3.11+ installed or EXE build available
+[ ] Ollama installed
+[ ] qwen3:0.6b available
+[ ] GEORUSH launcher tested
+[ ] Audit tested
+[ ] 3-Agent Deep Research tested
+[ ] PDF contains AI section
+[ ] GA4 status page verified
+[ ] No secrets committed
+[ ] Marketing UAT signed
+[ ] Release commit/tag created

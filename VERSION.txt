@@ -1,0 +1,4 @@
+GEORUSH SEO
+Version: 1.0.0
+Release: Marketing Production v1
+Default Ollama model: qwen3:0.6b

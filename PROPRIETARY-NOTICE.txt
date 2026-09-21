@@ -1,0 +1,6 @@
+GEORUSH SEO — INTERNAL / PROPRIETARY
+Version 1.0.0
+
+This application is an internal marketing/SEO intelligence system. Source code,
+configuration, business logic, reports and internal data integrations are intended
+for authorized company use only. Do not redistribute externally without approval.

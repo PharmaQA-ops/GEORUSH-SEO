@@ -3,12 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GEORUSH SEO</title>
-<link rel="stylesheet" href="styles.css?v=13">
+<title>GEORUSH SEO — Marketing Intelligence</title>
+<link rel="icon" type="image/x-icon" href="georush.ico">
+<link rel="stylesheet" href="styles.css?v=16">
 </head>
 <body>
+<div id="georushLoader" class="georush-loader" aria-label="Loading GEORUSH">
+  <div class="loader-orbit loader-orbit-a"></div>
+  <div class="loader-orbit loader-orbit-b"></div>
+  <div class="loader-core">
+    <img src="georush-logo.png" alt="GEORUSH" class="loader-logo">
+    <div class="loader-brand">GEORUSH</div>
+    <div class="loader-status"><span id="loaderWord">LOADING</span><b id="loaderPercent">0%</b></div>
+    <div class="loader-progress"><i id="loaderProgress"></i></div>
+    <div class="loader-caption">SEO INTELLIGENCE PLATFORM</div>
+  </div>
+</div>
 <aside class="sidebar">
-  <div class="brand"><span>G</span><div><b>GEORUSH</b><small>SEO INTELLIGENCE</small></div></div>
+  <div class="brand"><img src="georush-logo.png" alt="GEORUSH" class="brand-logo"><div><b>GEORUSH</b><small>SEO INTELLIGENCE · v1.0.0</small></div></div>
   <nav id="mainNav">
     <a class="nav-link active" href="#dashboard" data-page="dashboard">Dashboard</a>
     <a class="nav-link" href="#keywords" data-page="keywords">Keywords</a>
@@ -58,7 +70,6 @@
     <label class="file-button">Import GSC CSV<input id="keywordCsv" type="file" accept=".csv,text/csv" hidden></label>
   </div>
   <div id="keywordIntelResult" class="panel-lite"><div class="empty-state">Run Keyword Intelligence after an audit to extract evidence-based keyword themes. Search volume and rankings require GSC or a keyword provider.</div></div>
-  <div id="keywordIntelResult" class="panel-lite"><div class="empty-state">Run Keyword Intelligence after an audit to extract evidence-based keyword themes. Search volume and rankings require GSC or a keyword provider.</div></div>
   <div class="metric-grid" id="keywordMetrics"></div>
   <div class="table-wrap"><table><thead><tr><th>Keyword</th><th>Intent</th><th>Clicks</th><th>Impressions</th><th>CTR</th><th>Position</th><th>Opportunity</th></tr></thead>
   <tbody id="keywordRows"><tr><td colspan="7">Load demo data or import a Google Search Console CSV export.</td></tr></tbody></table></div>
@@ -97,7 +108,7 @@
 
 <section id="analytics" data-section="analytics" class="module"><div class="module-head"><div><h2>Analytics</h2><p>Crawl performance now; Google Analytics 4 can be connected when credentials are configured.</p></div><span id="ga4Status" class="badge">GA4 CHECKING</span></div><div class="metric-grid" id="analyticsMetrics"></div><div class="panel-lite"><h3>Data source status</h3><p><b>Crawler:</b> <span id="analyticsCrawlerStatus">No audit loaded</span></p><p><b>Google Analytics 4:</b> <span id="ga4ConnectionDetail">Checking connection configuration...</span></p><p><b>Google Search Console:</b> Not connected</p><div class="report-controls"><button id="connectGA4" type="button">Connect Google Analytics 4</button><button id="loadGA4Report" type="button">Load GA4 Report</button></div><div id="ga4Report" class="report-section"><div class="empty-state">GA4 data will appear here after the connector is configured.</div></div></div></section>
 </main>
-<script src="api-config.js?v=15"></script>
-<script src="app.js?v=15"></script>
+<script src="api-config.js?v=16"></script>
+<script src="app.js?v=16"></script>
 </body>
 </html>

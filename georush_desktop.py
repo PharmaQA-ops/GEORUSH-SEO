@@ -28,6 +28,19 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:0.6b")
 STARTUP_TIMEOUT = int(os.getenv("GEORUSH_STARTUP_TIMEOUT", "120"))
 
 ollama_process = None
+GEORUSH_VERSION = "1.0.0"
+LOG_FILE = Path(tempfile.gettempdir()) / "georush-launcher.log"
+
+
+def log_path():
+    return str(LOG_FILE)
+
+
+def write_log(message):
+    try:
+        LOG_FILE.write_text(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {message}\n", encoding="utf-8")
+    except Exception:
+        pass
 
 
 def prepare_ollama_for_georush():
@@ -65,16 +78,6 @@ def start_api():
 
 
 def cleanup():
-    global ollama_process
-    # Only stop Ollama if this GEORUSH launcher started it.
-    if started_ollama and ollama_process is not None:
-        try:
-            ollama_process.terminate()
-        except Exception:
-            pass
-
-
-def cleanup():
     try:
         stop_all_ollama()
     except Exception:
@@ -99,7 +102,7 @@ def main():
     try:
         startup()
         webview.create_window(
-            "GEORUSH SEO",
+            f"GEORUSH SEO v{GEORUSH_VERSION}",
             f"http://{HOST}:{PORT}/",
             width=1440,
             height=900,

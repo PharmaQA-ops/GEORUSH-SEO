@@ -6,6 +6,29 @@ let LAST_DEEP_RESEARCH = null;
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 
+function startGEORUSHLoader(){
+  const loader=$('#georushLoader'); if(!loader)return;
+  const words=['LOADING','CONNECTING','CRAWLER','INDEXING','INTELLIGENCE','READY'];
+  const progress=$('#loaderProgress'), percent=$('#loaderPercent'), word=$('#loaderWord');
+  const started=performance.now(), duration=1900;
+  function tick(now){
+    const t=Math.min(1,(now-started)/duration);
+    const eased=1-Math.pow(1-t,3);
+    const value=Math.round(eased*100);
+    if(progress)progress.style.width=value+'%';
+    if(percent)percent.textContent=value+'%';
+    if(word)word.textContent=words[Math.min(words.length-1,Math.floor(t*words.length))];
+    if(t<1)requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+function finishGEORUSHLoader(){
+  const loader=$('#georushLoader'); if(!loader)return;
+  const finish=()=>loader.classList.add('is-hidden');
+  if(document.readyState==='complete')setTimeout(finish,350); else window.addEventListener('load',()=>setTimeout(finish,350),{once:true});
+}
+startGEORUSHLoader();
+
 async function api(path, options = {}) {
   const controller = new AbortController();
   const timeoutMs = options.timeoutMs || (/research|intelligence|ai\//i.test(path) ? 15 * 60 * 1000 : 30000);
@@ -313,7 +336,8 @@ async function generateReport(){
   $('#reportPreview').innerHTML='<div class="empty-state">Building SEO report, competitor analysis, Cloudflare Radar signals and GEORUSH AI recommendations...</div>';
   try{
     const d=await buildFullIntelligence();
-    $('#reportPreview').innerHTML=buildReportHtml()+intelligenceHtml(d);
+    $('#reportPreview').innerHTML=buildReportHtml()+intelligenceHtml(d)+(LAST_DEEP_RESEARCH?deepResearchHtml(LAST_DEEP_RESEARCH):'');
+    $('#reportPreview').dataset.generated='1';
   }catch(e){
     $('#reportPreview').innerHTML=buildReportHtml()+`<div class="report-section"><h3>Intelligence Add-on</h3><p>Automatic intelligence unavailable: ${escapeHtml(e.message||'API unavailable')}.</p></div>`;
   }
@@ -331,7 +355,10 @@ async function printReport(){
   if(!pages().length){await generateReport();if(!pages().length)return;}
   if(!INTELLIGENCE?.competitors){await generateReport();}
   const report=$('#reportPreview');if(!report)return;
-  if(LAST_DEEP_RESEARCH) refreshReportWithResearch();
+  if(LAST_DEEP_RESEARCH){
+    report.innerHTML=buildReportHtml()+intelligenceHtml(INTELLIGENCE)+deepResearchHtml(LAST_DEEP_RESEARCH);
+    report.dataset.generated='1';
+  }
   document.body.classList.add('printing-report');window.print();
   setTimeout(()=>document.body.classList.remove('printing-report'),1000);
 }
@@ -384,4 +411,4 @@ window.addEventListener('beforeunload',()=>{
   try{navigator.sendBeacon('/api/ollama/runtime/stop','{}');}catch(e){}
 });
 
-document.addEventListener('DOMContentLoaded',()=>{loadSaved();initNavigation();checkAPI();if(LAST_CRAWL)renderResults(LAST_CRAWL);$('#runAudit')?.addEventListener('click',runCrawl);$('#searchBtn')?.addEventListener('click',performSearch);$('#globalSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')performSearch();});$('#inspectCompetitor')?.addEventListener('click',inspectCompetitor);$('#discoverCompetitors')?.addEventListener('click',discoverCompetitors);initKeywords();$('#generateReport')?.addEventListener('click',generateReport);$('#fullIntelReport')?.addEventListener('click',generateReport);$('#ollamaAI')?.addEventListener('click',runOllamaAI);$('#deepResearch')?.addEventListener('click',runMultiAgentResearch);refreshOllamaStatus();setInterval(refreshOllamaStatus,30000);$('#downloadReport')?.addEventListener('click',downloadReport);$('#downloadReportCsv')?.addEventListener('click',downloadReportCsv);$('#printReport')?.addEventListener('click',printReport);$('#connectGA4')?.addEventListener('click',connectGA4);$('#loadGA4Report')?.addEventListener('click',loadGA4Report);refreshGA4Status();});
+document.addEventListener('DOMContentLoaded',()=>{startGEORUSHLoader();loadSaved();initNavigation();checkAPI();if(LAST_CRAWL)renderResults(LAST_CRAWL);$('#runAudit')?.addEventListener('click',runCrawl);$('#searchBtn')?.addEventListener('click',performSearch);$('#globalSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')performSearch();});$('#inspectCompetitor')?.addEventListener('click',inspectCompetitor);$('#discoverCompetitors')?.addEventListener('click',discoverCompetitors);initKeywords();$('#generateReport')?.addEventListener('click',generateReport);$('#fullIntelReport')?.addEventListener('click',generateReport);$('#ollamaAI')?.addEventListener('click',runOllamaAI);$('#deepResearch')?.addEventListener('click',runMultiAgentResearch);refreshOllamaStatus();setInterval(refreshOllamaStatus,30000);$('#downloadReport')?.addEventListener('click',downloadReport);$('#downloadReportCsv')?.addEventListener('click',downloadReportCsv);$('#printReport')?.addEventListener('click',printReport);$('#connectGA4')?.addEventListener('click',connectGA4);$('#loadGA4Report')?.addEventListener('click',loadGA4Report);refreshGA4Status();setTimeout(finishGEORUSHLoader,1200);});

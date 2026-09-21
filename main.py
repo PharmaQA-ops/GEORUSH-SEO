@@ -22,7 +22,7 @@ from multi_research import run_multi_research
 from ollama_manager import ensure_model as ensure_ollama_model, start as start_ollama, stop_all as stop_ollama, status as ollama_runtime_status
 from google_analytics import config_status as ga4_config_status, run_report as ga4_run_report
 
-app = FastAPI(title="GEORUSH SEO API", version="0.34.0")
+app = FastAPI(title="GEORUSH SEO API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -57,7 +57,7 @@ def ollama_runtime_stop():
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "service": "georush-seo-api", "version": "0.34.0"}
+    return {"status": "ok", "service": "georush-seo-api", "version": "1.0.0"}
 
 @app.post("/api/crawl")
 def start_crawl(req: CrawlRequest):

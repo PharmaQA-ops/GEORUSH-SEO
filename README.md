@@ -1,66 +1,68 @@
-# GEORUSH SEO — Step 32 Production Intelligence
+# GEORUSH SEO v1.0.0
 
-This version fixes the non-clickable navigation, search and backend syntax.
+Internal Marketing SEO Intelligence Platform.
 
-Frontend:
-- Root index.html
-- Real button-based sidebar navigation
-- Working Dashboard / Keywords / Rankings / Competitors / Site Audit / Content / Backlinks / Analytics
-- Working search button and Enter key
-- Working Run Audit button
+## Release
 
-Backend:
-- Correct FastAPI main.py
-- `/api/health`
-- `/api/crawl`
-- `/api/search`
-- `/api/ai/ask`
-- GSC, keyword, competitor, content and analytics endpoints
+Production Marketing Release 1.0.0.
 
-Run locally:
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+## Start
 
-Then open the root index.html with Live Server.
+-   Windows desktop: `GEORUSH-SEO-START.vbs`
+-   Setup: `INSTALL-GEORUSH.bat`
+-   Build source EXE: `BUILD-GEORUSH.bat`
 
-GitHub Pages:
-The frontend works there, but live crawling requires the Python API to be deployed separately.
+## Core modules
 
+Dashboard, Keywords, Rankings, Competitors, Site Audit, Content,
+Backlinks, Analytics and Reports.
 
-## GEORUSH Cloud API (Render)
+## Local AI
 
-This repository is prepared for a cloud-hosted FastAPI crawler. GitHub Pages serves the frontend; Render runs `main.py` and the crawler.
+GEORUSH uses local Ollama for AI analysis and 3-agent Deep Research.
+Default model: `qwen3:0.6b`.
 
-1. Create a Render Web Service from this GitHub repository.
-2. Use build command: `pip install -r requirements.txt`.
-3. Use start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`.
-4. After deployment, open `/api/health` on the Render URL.
-5. Put the Render URL into `api-config.js` as `window.GEORUSH_API`.
-6. Commit and push the frontend change to GitHub Pages.
+GEORUSH owns the Ollama lifecycle: stop pre-existing Ollama processes at
+startup, start Ollama on demand, and stop the managed runtime on
+shutdown.
 
-The marketing team only needs the GitHub Pages URL; they do not need Python or this local API setup.
+## Reporting
 
-See `RENDER-DEPLOY.md` for the exact cloud deployment sequence.
+The report preview is the source for Print / Save PDF. Completed 3-agent
+research is included in the report and HTML export.
 
+## Analytics
 
-## Step 27 — Local Ollama AI
-GEORUSH can run its three AI research agents locally through Ollama. No Gemini/OpenRouter/Groq API key is required. Default test model: `qwen3:1.7b`. See `STEP27.txt`.
+GA4 is included as a controlled backend integration path. GSC remains
+the source for real search query/ranking evidence.
 
-## Step 28 — One-click Windows operation
-GEORUSH now automatically starts/reuses Ollama, verifies the configured model, starts the local API, and opens the desktop UI. Users do not need to run PowerShell commands every day. See STEP28.txt.
+## Branding
 
+The supplied GEORUSH logo is included as `georush-logo.png` and
+`georush.ico`. The startup screen uses a GEORUSH-branded animated
+progress/reveal inspired by the motion language observed on the NeoLeaf
+reference site.
 
-## Step 29 - Async Deep Research
-Deep Research now runs as a background job. The browser starts a job and polls its status, so long Ollama runs do not hit a frontend HTTP timeout.
+Reference reviewed: https://neoleaf.bytetown.agency/
 
-New endpoints: POST /api/research/multi-agent/start and GET /api/research/multi-agent/status/{job_id}.
+## Deployment documents
 
+See the included user manual, administrator deployment guide, Ollama
+operations guide, GA4/GSC connector guide, technical architecture,
+security checklist and UAT workbook.
 
-### Step 31 — Ultra Low-RAM Ollama
-Default local model is qwen3:0.6b with compact context/output settings for 4 GB RAM test machines.
+## Repository rule
 
+Deploy only from `PharmaQA-ops/GEORUSH-SEO`. Do not upload this release
+to `ggl-main-dashboard`.
 
-## Step 32
-Production intelligence layer: evidence-based keyword intelligence, title-aware competitor discovery, validated 3-agent Ollama outputs, live research stages, and Run Ollama AI controls.
+## Security
+
+Do not commit API tokens, passwords, service-account JSON files or
+production `.env` files.
+
+## Windows build
+For a Windows EXE/installer, use the included GitHub Actions workflow or run `BUILD-GEORUSH.bat` on Windows. The build script now detects and recreates broken `.venv` environments and bootstraps pip before installing PyInstaller.
+
+## Branding
+The `branding/` directory contains the complete GEORUSH logo asset pack generated from the supplied owner artwork.
