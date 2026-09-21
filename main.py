@@ -20,8 +20,9 @@ from ai import ask, generate_report_recommendations, build_ai_context
 from ollama_agent import run_agent as ollama_run_agent, OllamaAgentError
 from multi_research import run_multi_research
 from ollama_manager import ensure_model as ensure_ollama_model, start as start_ollama, stop_all as stop_ollama, status as ollama_runtime_status
+from google_analytics import config_status as ga4_config_status, run_report as ga4_run_report
 
-app = FastAPI(title="GEORUSH SEO API", version="0.33.0")
+app = FastAPI(title="GEORUSH SEO API", version="0.34.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -56,7 +57,7 @@ def ollama_runtime_stop():
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "service": "georush-seo-api", "version": "0.33.0"}
+    return {"status": "ok", "service": "georush-seo-api", "version": "0.34.0"}
 
 @app.post("/api/crawl")
 def start_crawl(req: CrawlRequest):
@@ -363,6 +364,14 @@ def content_analyze(req: ContentRequest):
 @app.get("/api/analytics/summary")
 def analytics():
     return analytics_summary()
+
+@app.get("/api/analytics/ga4/status")
+def ga4_status():
+    return ga4_config_status()
+
+@app.get("/api/analytics/ga4/report")
+def ga4_report(start_date: str = "28daysAgo", end_date: str = "today"):
+    return ga4_run_report(start_date, end_date)
 
 class AIRequest(BaseModel):
     question: str

@@ -95,9 +95,9 @@
   </div>
 </section>
 
-<section id="analytics" data-section="analytics" class="module"><div class="module-head"><div><h2>Analytics</h2><p>Crawl performance now; GA4 metrics when connected.</p></div><span class="badge">GA4 READY</span></div><div class="metric-grid" id="analyticsMetrics"></div><div class="panel-lite"><h3>Data source status</h3><p><b>Crawler:</b> <span id="analyticsCrawlerStatus">No audit loaded</span></p><p><b>Google Analytics 4:</b> Not connected</p><p><b>Google Search Console:</b> Not connected</p></div></section>
+<section id="analytics" data-section="analytics" class="module"><div class="module-head"><div><h2>Analytics</h2><p>Crawl performance now; Google Analytics 4 can be connected when credentials are configured.</p></div><span id="ga4Status" class="badge">GA4 CHECKING</span></div><div class="metric-grid" id="analyticsMetrics"></div><div class="panel-lite"><h3>Data source status</h3><p><b>Crawler:</b> <span id="analyticsCrawlerStatus">No audit loaded</span></p><p><b>Google Analytics 4:</b> <span id="ga4ConnectionDetail">Checking connection configuration...</span></p><p><b>Google Search Console:</b> Not connected</p><div class="report-controls"><button id="connectGA4" type="button">Connect Google Analytics 4</button><button id="loadGA4Report" type="button">Load GA4 Report</button></div><div id="ga4Report" class="report-section"><div class="empty-state">GA4 data will appear here after the connector is configured.</div></div></div></section>
 </main>
-<script src="api-config.js?v=14"></script>
-<script src="app.js?v=14"></script>
+<script src="api-config.js?v=15"></script>
+<script src="app.js?v=15"></script>
 </body>
 </html>

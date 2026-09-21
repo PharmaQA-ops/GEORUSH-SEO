@@ -6,3 +6,5 @@ beautifulsoup4
 lxml
 pydantic-settings
 pywebview>=5.4
+# Optional future GA4 connector (install when GA4 is enabled):
+# google-analytics-data>=0.18.0

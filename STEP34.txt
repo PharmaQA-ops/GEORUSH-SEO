@@ -1,0 +1,20 @@
+STEP 34 — REPORT + AI INTELLIGENCE + GA4 READY
+
+Fixes:
+1. 3-Agent Ollama Deep Research is now persisted in the report state.
+2. Print / Save PDF includes the 3-Agent output instead of only showing it in the live UI.
+3. Download HTML includes the same AI research section.
+4. Ollama Agent 1 competitor analysis is surfaced in the report with domain, site title, relevance reason, observed signals and gaps.
+5. Competitor analysis can therefore use the local Ollama research when 3-Agent Deep Research has been run.
+6. Deep Research completion refreshes the report preview automatically.
+7. Added a GA4-ready backend connector:
+   GET /api/analytics/ga4/status
+   GET /api/analytics/ga4/report
+8. Added Google Analytics 4 navigation/connection panel for future configuration.
+9. GA4 is disabled until credentials and a property ID are configured; no fake analytics data is displayed.
+
+GA4 future setup:
+- GA4_PROPERTY_ID=<your GA4 property ID>
+- GOOGLE_APPLICATION_CREDENTIALS=<path to service-account JSON>
+- Grant the service account Viewer access to the GA4 property.
+- Install google-analytics-data when enabling the connector.

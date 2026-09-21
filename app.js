@@ -2,6 +2,7 @@ const configuredAPI = window.GEORUSH_API || "";
 const API = configuredAPI || ((window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://127.0.0.1:8000" : "");
 let LAST_CRAWL = null;
 let INTELLIGENCE = {competitors:null, radar:null, recommendations:[], ai:null};
+let LAST_DEEP_RESEARCH = null;
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 
@@ -177,6 +178,39 @@ async function runOllamaAI(){
   }catch(e){if(box)box.innerHTML=`<div class="empty-state"><b>Ollama AI failed.</b><br>${escapeHtml(e.message||'API unavailable')}</div>`;}
   finally{if(btn)btn.disabled=false;}
 }
+function deepResearchHtml(d){
+  if(!d)return '';
+  const r=d.report||{}, c=d.agents?.competitor||{}, seo=d.agents?.seo||{};
+  const compRows=(c.competitors||[]).map(x=>{
+    const sig=x.observed_signals||{};
+    return `<tr><td><b>${escapeHtml(x.domain||'—')}</b></td><td>${escapeHtml(x.site_title||'—')}</td><td>${escapeHtml(x.why_relevant||'—')}</td><td>${escapeHtml(typeof sig==='string'?sig:JSON.stringify(sig))}</td><td>${escapeHtml((x.gaps||[]).join(' · ')||'—')}</td></tr>`;
+  }).join('');
+  const findings=(r.critical_findings||[]).map(x=>`<tr><td>${escapeHtml(x.priority||'—')}</td><td>${escapeHtml(x.finding||'—')}</td><td>${escapeHtml(x.recommendation||'—')}</td></tr>`).join('');
+  const opp=(r.opportunities||[]).map(x=>`<li>${escapeHtml(typeof x==='string'?x:(x.opportunity||x.action||JSON.stringify(x)))}</li>`).join('');
+  const plan=(r.action_plan||[]).map(x=>`<tr><td>${escapeHtml(x.timeframe||'—')}</td><td>${(x.actions||[]).map(a=>escapeHtml(a)).join('<br>')}</td></tr>`).join('');
+  const keywords=(seo.keyword_themes||[]).slice(0,15).map(x=>`<tr><td><b>${escapeHtml(x.keyword||'')}</b></td><td>${escapeHtml(x.intent||'—')}</td><td>${escapeHtml(x.evidence||'—')}</td></tr>`).join('');
+  const sources=(d.evidence?.search_results||[]).slice(0,12).map(x=>`<li>${escapeHtml(x.title||x.url||'')}</li>`).join('');
+  return `<div class="report-section ai-deep-research">
+    <h3>GEORUSH AI — 3-Agent Deep Research</h3>
+    <div class="intel-summary"><b>Site title:</b> ${escapeHtml(d.site_title||'Not detected')}<br><b>Executive summary:</b> ${escapeHtml(r.executive_summary||'Not established from available evidence')}<br><b>Confidence:</b> ${escapeHtml(r.confidence||'Not stated')}<br><b>Top competitor:</b> ${escapeHtml(r.top_competitor||'Not established from available evidence')}<br><small>Local model: ${escapeHtml(d.model||'configured model')} · Evidence collected: ${(d.evidence?.search_results||[]).length} search records, ${(d.evidence?.pages||[]).length} inspected pages</small></div>
+    ${compRows?`<h4>Ollama Competitor Research</h4><table class="report-table"><thead><tr><th>Domain</th><th>Site Title</th><th>Why Relevant</th><th>Observed Signals</th><th>Gaps</th></tr></thead><tbody>${compRows}</tbody></table>`:'<h4>Ollama Competitor Research</h4><p>No sufficiently relevant competitor was established from the supplied evidence.</p>'}
+    ${findings?`<h4>Critical Findings</h4><table class="report-table"><thead><tr><th>Priority</th><th>Finding</th><th>Recommendation</th></tr></thead><tbody>${findings}</tbody></table>`:''}
+    ${opp?`<h4>Opportunities</h4><ul>${opp}</ul>`:''}
+    ${plan?`<h4>AI Action Plan</h4><table class="report-table"><thead><tr><th>Timeframe</th><th>Actions</th></tr></thead><tbody>${plan}</tbody></table>`:''}
+    ${keywords?`<h4>AI Keyword Intelligence</h4><table class="report-table"><thead><tr><th>Keyword / Theme</th><th>Intent</th><th>Evidence</th></tr></thead><tbody>${keywords}</tbody></table>`:''}
+    ${seo.content_gaps?.length?`<h4>Content Gaps</h4><ul>${seo.content_gaps.map(x=>`<li>${escapeHtml(x)}</li>`).join('')}</ul>`:''}
+    ${r.limitations?.length?`<p><b>Limitations:</b> ${r.limitations.map(x=>escapeHtml(x)).join(' · ')}</p>`:''}
+    ${sources?`<details><summary>Research sources</summary><ul>${sources}</ul></details>`:''}
+  </div>`;
+}
+function refreshReportWithResearch(){
+  if(!LAST_DEEP_RESEARCH)return;
+  const report=$('#reportPreview');
+  if(report && pages().length && INTELLIGENCE?.competitors){
+    report.innerHTML=buildReportHtml()+intelligenceHtml(INTELLIGENCE)+deepResearchHtml(LAST_DEEP_RESEARCH);
+    report.dataset.generated='1';
+  }
+}
 async function runMultiAgentResearch(){
   const target=$('#site')?.value.trim(); if(!target)return;
   const btn=$('#deepResearch'); if(btn)btn.disabled=true;
@@ -197,22 +231,9 @@ async function runMultiAgentResearch(){
     }
     if(!d)throw new Error('Research job is still running.');
     if(!d.success)throw new Error(d.error||'Research failed');
-    const r=d.report||{}, c=d.agents?.competitor||{}, seo=d.agents?.seo||{};
-    const rows=(r.critical_findings||[]).map(x=>`<tr><td>${escapeHtml(x.priority||'—')}</td><td>${escapeHtml(x.finding||x.area||'—')}</td><td>${escapeHtml(x.recommendation||x.action||'—')}</td></tr>`).join('');
-    const opp=(r.opportunities||[]).map(x=>`<li>${escapeHtml(typeof x==='string'?x:(x.opportunity||x.action||JSON.stringify(x)))}</li>`).join('');
-    const plan=(r.action_plan||[]).map(x=>`<tr><td>${escapeHtml(x.timeframe||'—')}</td><td>${(x.actions||[]).map(a=>escapeHtml(a)).join('<br>')}</td></tr>`).join('');
-    const title=d.site_title||d.evidence?.site_title||'Site title not detected';
-    box.innerHTML=`<div class="report-header"><h2>GEORUSH AI — 3-Agent Deep Research</h2><p><b>Site title:</b> ${escapeHtml(title)} · ${escapeHtml(target)} · ${new Date().toLocaleString()}</p></div>
-    <div class="intel-summary"><b>Executive summary:</b> ${escapeHtml(r.executive_summary||'Not established from available evidence')}<br><b>Confidence:</b> ${escapeHtml(r.confidence||'Not stated')}<br><b>Top competitor:</b> ${escapeHtml(r.top_competitor||'Not established from available evidence')}<br><small>Three-agent local Ollama research · model ${escapeHtml(d.model||'configured model')}</small></div>
-    ${rows?`<h3>Critical Findings</h3><table class="report-table"><thead><tr><th>Priority</th><th>Finding</th><th>Recommendation</th></tr></thead><tbody>${rows}</tbody></table>`:''}
-    ${opp?`<h3>Opportunities</h3><ul>${opp}</ul>`:''}
-    ${plan?`<h3>Action Plan</h3><table class="report-table"><thead><tr><th>Timeframe</th><th>Actions</th></tr></thead><tbody>${plan}</tbody></table>`:''}
-    <h3>Keyword Intelligence</h3><div class="intel-summary">${(seo.keyword_themes||[]).slice(0,12).map(x=>`<b>${escapeHtml(x.keyword||'')}</b> <small>(${escapeHtml(x.intent||'')})</small>`).join(' · ')||'No structured keyword themes returned.'}</div>
-    <h3>Research Evidence</h3><p>${d.evidence?.search_results?.length||0} search result records and ${d.evidence?.pages?.length||0} website pages were collected.</p>
-    <details><summary>Agent 1 — Competitor Research</summary><pre>${escapeHtml(JSON.stringify(c,null,2))}</pre></details>
-    <details><summary>Agent 2 — SEO / Keyword Research</summary><pre>${escapeHtml(JSON.stringify(seo,null,2))}</pre></details>
-    <details><summary>Agent 3 — Critical Review</summary><pre>${escapeHtml(JSON.stringify(r,null,2))}</pre></details>
-    <p><b>Limitations:</b> ${(r.limitations||[]).map(x=>escapeHtml(x)).join(' · ')||'No additional limitations reported.'}</p>`;
+    LAST_DEEP_RESEARCH=d;
+    if(box)box.innerHTML=deepResearchHtml(d);
+    refreshReportWithResearch();
   }catch(e){if(box)box.innerHTML=`<div class="empty-state"><b>Deep research failed.</b><br>${escapeHtml(e.message||'API unavailable')}</div>`;}
   finally{if(btn)btn.disabled=false;}
 }
@@ -235,6 +256,7 @@ function intelligenceHtml(d){
   const fallbackRec=rec.length ? `<table class="report-table"><thead><tr><th>Priority</th><th>Area</th><th>Recommendation</th></tr></thead><tbody>${rec.map(r=>`<tr><td>${escapeHtml(r.priority)}</td><td>${escapeHtml(r.area)}</td><td>${escapeHtml(r.action)}</td></tr>`).join('')}</tbody></table>` : '<p>No rules-based recommendations generated.</p>';
   return `<div class="report-section"><h3>Automatic Competitor Analysis</h3><p>GEORUSH discovered and inspected ${comps.length} competitor domain(s) using the target's keyword/topic signals.</p>
   ${comps.length?`<table class="report-table"><thead><tr><th>Competitor</th><th>Signal Score</th><th>Words</th><th>H1</th><th>Response</th><th>HTTPS</th></tr></thead><tbody>${comps.map(c=>{const s=c.signals||{};return `<tr><td>${escapeHtml(c.url)}</td><td>${c.signal_score??0}</td><td>${s.word_count??0}</td><td>${s.h1_count??0}</td><td>${c.response_time_ms??0} ms</td><td>${s.https?'Yes':'No'}</td></tr>`}).join('')}</tbody></table>`:'<p>No competitor data returned.</p>'}</div>
+  ${LAST_DEEP_RESEARCH?.agents?.competitor?.competitors?.length?`<div class="report-section"><h3>Ollama Competitor Intelligence</h3><p>Agent 1 reviewed the discovered competitor set using the same public evidence collected for the 3-agent research.</p><table class="report-table"><thead><tr><th>Domain</th><th>Site Title</th><th>Why Relevant</th><th>Gaps</th></tr></thead><tbody>${LAST_DEEP_RESEARCH.agents.competitor.competitors.map(c=>`<tr><td>${escapeHtml(c.domain||'—')}</td><td>${escapeHtml(c.site_title||'—')}</td><td>${escapeHtml(c.why_relevant||'—')}</td><td>${escapeHtml((c.gaps||[]).join(' · ')||'—')}</td></tr>`).join('')}</tbody></table></div>`:''}
   <div class="report-section"><h3>Cloudflare Radar / URL Scanner</h3><p>Radar provides supplementary security, performance, technology and network signals. ${radar.radar_url?`<a href="${escapeHtml(radar.radar_url)}" target="_blank" rel="noopener">Open Cloudflare Radar scan</a>`:'Radar scan link unavailable.'}</p>
   <table class="report-table"><tbody><tr><th>Radar Rank</th><td>${escapeHtml(radar.radar_rank??'Not available')}</td></tr><tr><th>Country</th><td>${escapeHtml(radar.country??'Not available')}</td></tr><tr><th>ASN</th><td>${escapeHtml(radar.asn??'Not available')}</td></tr><tr><th>Security verdict</th><td>${radar.malicious===true?'Malicious verdict reported':'No malicious verdict reported / not available'}</td></tr><tr><th>API status</th><td>${radar.configured?'Configured':'Public Radar link only — API credentials not configured'}</td></tr></tbody></table></div>
   <div class="report-section"><h3>GEORUSH AI — Local Ollama Agent</h3>${gemOk?`<div class="intel-summary"><b>Overall priority:</b> ${escapeHtml(gem.overall_priority||'—')}<br><b>Executive summary:</b> ${escapeHtml(gem.executive_summary||'—')}<br><small>Model: ${escapeHtml(gem.model||'Ollama')} · Evidence-driven GEORUSH agent</small></div>
@@ -302,13 +324,14 @@ async function downloadReport(){
   if(!INTELLIGENCE?.competitors){await generateReport();}
   const title=($('#reportTitle')?.value||'GEORUSH SEO Audit Report').replace(/[^\w-]+/g,'-');
   const reportCss=`body{font:14px Arial;margin:40px;color:#172535}.report-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.report-kpi{border:1px solid #ddd;padding:12px}.report-kpi small{display:block;color:#667}.report-kpi strong{font-size:24px}.report-charts{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:20px 0}.chart-card{border:1px solid #ddd;border-radius:8px;padding:15px}.report-bar-chart{display:flex;align-items:flex-end;gap:8px;height:190px;border-bottom:1px solid #ddd}.report-bar{flex:1;position:relative;height:100%;display:flex;align-items:flex-end;justify-content:center}.report-bar i{display:block;width:70%;height:var(--bar-h);background:#172535;border-radius:3px 3px 0 0}.report-bar span{position:absolute;bottom:-25px;font-size:9px}.report-pie-wrap{display:flex;gap:20px;align-items:center}.report-pie{width:150px;height:150px;border-radius:50%}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left;font-size:12px}@media(max-width:800px){.report-charts{grid-template-columns:1fr}}`;
-  const doc=`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>${reportCss}</style></head><body>${buildReportHtml()}${intelligenceHtml(INTELLIGENCE)}</body></html>`;
+  const doc=`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>${reportCss}</style></head><body>${buildReportHtml()}${intelligenceHtml(INTELLIGENCE)}${deepResearchHtml(LAST_DEEP_RESEARCH)}</body></html>`;
   downloadBlob(`${title}.html`,'text/html;charset=utf-8',doc);
 }
 async function printReport(){
   if(!pages().length){await generateReport();if(!pages().length)return;}
   if(!INTELLIGENCE?.competitors){await generateReport();}
   const report=$('#reportPreview');if(!report)return;
+  if(LAST_DEEP_RESEARCH) refreshReportWithResearch();
   document.body.classList.add('printing-report');window.print();
   setTimeout(()=>document.body.classList.remove('printing-report'),1000);
 }
@@ -320,6 +343,37 @@ async function inspectCompetitor(){const url=$('#competitorUrl').value.trim();if
 function renderAudit(){const ps=pages();const score=LAST_CRAWL?.seo_score||{};$('#auditGrade').textContent=score.grade?`${score.grade} • ${score.total}`:'NO AUDIT';const counts={};ps.forEach(p=>(p.issues||[]).forEach(i=>counts[i]=(counts[i]||0)+1));$('#auditMetrics').innerHTML=metric('SEO Score',score.total??'—',score.grade||'Run audit')+metric('Pages',ps.length,'Crawled')+metric('Issue types',Object.keys(counts).length,'Unique checks')+metric('Total issues',Object.values(counts).reduce((a,b)=>a+b,0),'Across pages');$('#issueSummary').innerHTML=Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([i,n])=>`<div class="issue-card"><span class="severity ${issueSeverity(i).toLowerCase()}">${issueSeverity(i)}</span><b>${escapeHtml(i)}</b><strong>${n}</strong><small>page${n===1?'':'s'}</small></div>`).join('')||'<div class="empty-state">No issues detected.</div>';$('#auditRows').innerHTML=ps.length?ps.map(p=>`<tr><td>${escapeHtml(p.url)}</td><td>${p.status_code??0}</td><td>${p.issues?.length?issueSeverity(p.issues[0]):'Healthy'}</td><td>${escapeHtml((p.issues||[]).join(', ')||'None')}</td><td>${p.response_time_ms??0} ms</td></tr>`).join(''):'<tr><td colspan="5">Run an audit first.</td></tr>';}
 function renderContent(){const ps=pages();const thin=ps.filter(p=>(p.word_count||0)<300).length;const missingDesc=ps.filter(p=>!p.description).length;const multiH1=ps.filter(p=>(p.h1_count||0)>1).length;$('#contentMetrics').innerHTML=metric('Pages',ps.length,'Crawled')+metric('Thin pages',thin,'Under 300 words')+metric('Missing descriptions',missingDesc,'Meta description')+metric('Multiple H1',multiH1,'Heading structure');$('#contentRows').innerHTML=ps.length?ps.map(p=>`<tr><td>${escapeHtml(p.url)}</td><td>${escapeHtml(p.title||'—')}</td><td>${p.word_count||0}</td><td>${p.description?escapeHtml(p.description.slice(0,100)):'Missing'}</td><td>${p.h1_count??(p.h1?1:0)}</td><td>${escapeHtml((p.issues||[]).filter(i=>/TITLE|DESCRIPTION|H1|THIN_CONTENT/i.test(i)).join(', ')||'None')}</td></tr>`).join(''):'<tr><td colspan="6">Run an audit first.</td></tr>';}
 function renderBacklinks(){const ps=pages();const internal=ps.reduce((n,p)=>n+(p.internal_links||0),0),external=ps.reduce((n,p)=>n+(p.external_links||0),0);$('#backlinkMetrics').innerHTML=metric('Pages',ps.length,'Crawled')+metric('Internal links',internal,'Discovered')+metric('External links',external,'Discovered')+metric('Avg internal/page',ps.length?(internal/ps.length).toFixed(1):'—','Crawl signal');$('#backlinkRows').innerHTML=ps.length?ps.map(p=>`<tr><td>${escapeHtml(p.url)}</td><td>${p.internal_links??0}</td><td>${p.external_links??0}</td><td>${(p.internal_links||0)>0?'Connected':'Orphan-like signal'}</td></tr>`).join(''):'<tr><td colspan="4">Run an audit first.</td></tr>';}
+
+async function refreshGA4Status(){
+  const statusEl=$('#ga4Status');
+  if(!statusEl)return;
+  try{
+    const d=await api('/api/analytics/ga4/status',{timeoutMs:10000});
+    statusEl.textContent=d.configured?'GA4 CONFIGURED':'GA4 NOT CONNECTED';
+    statusEl.className='badge '+(d.configured?'ollama-ready':'ollama-warn');
+    const detail=$('#ga4ConnectionDetail');
+    if(detail) detail.innerHTML=d.configured?`GA4 property <b>${escapeHtml(d.property_id)}</b> is configured.`:'GA4 is ready for future connection. Configure a GA4 property and service-account credentials on the GEORUSH backend.';
+  }catch(e){
+    statusEl.textContent='GA4 SETUP REQUIRED';
+    statusEl.className='badge ollama-warn';
+  }
+}
+async function connectGA4(){
+  const box=$('#ga4ConnectionDetail');
+  if(box)box.innerHTML='<b>GA4 connection setup</b><br>Set <code>GA4_PROPERTY_ID</code> and <code>GOOGLE_APPLICATION_CREDENTIALS</code> on the GEORUSH backend, grant the service account Viewer access in GA4, then refresh this status.';
+  await refreshGA4Status();
+}
+async function loadGA4Report(){
+  const box=$('#ga4Report');
+  if(box)box.innerHTML='<div class="empty-state">Loading GA4 data...</div>';
+  try{
+    const d=await api('/api/analytics/ga4/report',{timeoutMs:30000});
+    if(!d.success){if(box)box.innerHTML=`<div class="empty-state">${escapeHtml(d.error||'GA4 is not connected.')}</div>`;return;}
+    const rows=d.rows||[];
+    if(box)box.innerHTML=`<div class="table-wrap"><table class="report-table"><thead><tr><th>Date</th><th>Active Users</th><th>Sessions</th><th>Engagement Rate</th><th>Events</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${escapeHtml(r.date)}</td><td>${Number(r.active_users||0).toLocaleString()}</td><td>${Number(r.sessions||0).toLocaleString()}</td><td>${(Number(r.engagement_rate||0)*100).toFixed(1)}%</td><td>${Number(r.event_count||0).toLocaleString()}</td></tr>`).join('')||'<tr><td colspan="5">No GA4 rows returned.</td></tr>'}</tbody></table></div>`;
+  }catch(e){if(box)box.innerHTML=`<div class="empty-state">GA4 report failed: ${escapeHtml(e.message||'API unavailable')}</div>`;}
+}
+
 function renderAnalytics(){const ps=pages();const avg=ps.length?Math.round(ps.reduce((n,p)=>n+(p.response_time_ms||0),0)/ps.length):0;$('#analyticsMetrics').innerHTML=metric('Pages crawled',ps.length,'Crawler')+metric('Avg load',avg?`${avg} ms`:'—','Response time')+metric('HTTP 200',ps.filter(p=>p.status_code===200).length,'Healthy responses')+metric('Total words',ps.reduce((n,p)=>n+(p.word_count||0),0).toLocaleString(),'Crawled content');$('#analyticsCrawlerStatus').textContent=ps.length?`${ps.length} pages loaded from latest audit`:'No audit loaded';}
 function renderCompetitor(){if(!$('#competitorUrl').value && $('#site').value)$('#competitorUrl').value='';}
 function renderAllModules(){renderKeywordTable();renderRankings();renderAudit();renderContent();renderBacklinks();renderAnalytics();renderCompetitor();}
@@ -330,4 +384,4 @@ window.addEventListener('beforeunload',()=>{
   try{navigator.sendBeacon('/api/ollama/runtime/stop','{}');}catch(e){}
 });
 
-document.addEventListener('DOMContentLoaded',()=>{loadSaved();initNavigation();checkAPI();if(LAST_CRAWL)renderResults(LAST_CRAWL);$('#runAudit')?.addEventListener('click',runCrawl);$('#searchBtn')?.addEventListener('click',performSearch);$('#globalSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')performSearch();});$('#inspectCompetitor')?.addEventListener('click',inspectCompetitor);$('#discoverCompetitors')?.addEventListener('click',discoverCompetitors);initKeywords();$('#generateReport')?.addEventListener('click',generateReport);$('#fullIntelReport')?.addEventListener('click',generateReport);$('#ollamaAI')?.addEventListener('click',runOllamaAI);$('#deepResearch')?.addEventListener('click',runMultiAgentResearch);refreshOllamaStatus();setInterval(refreshOllamaStatus,30000);$('#downloadReport')?.addEventListener('click',downloadReport);$('#downloadReportCsv')?.addEventListener('click',downloadReportCsv);$('#printReport')?.addEventListener('click',printReport);});
+document.addEventListener('DOMContentLoaded',()=>{loadSaved();initNavigation();checkAPI();if(LAST_CRAWL)renderResults(LAST_CRAWL);$('#runAudit')?.addEventListener('click',runCrawl);$('#searchBtn')?.addEventListener('click',performSearch);$('#globalSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')performSearch();});$('#inspectCompetitor')?.addEventListener('click',inspectCompetitor);$('#discoverCompetitors')?.addEventListener('click',discoverCompetitors);initKeywords();$('#generateReport')?.addEventListener('click',generateReport);$('#fullIntelReport')?.addEventListener('click',generateReport);$('#ollamaAI')?.addEventListener('click',runOllamaAI);$('#deepResearch')?.addEventListener('click',runMultiAgentResearch);refreshOllamaStatus();setInterval(refreshOllamaStatus,30000);$('#downloadReport')?.addEventListener('click',downloadReport);$('#downloadReportCsv')?.addEventListener('click',downloadReportCsv);$('#printReport')?.addEventListener('click',printReport);$('#connectGA4')?.addEventListener('click',connectGA4);$('#loadGA4Report')?.addEventListener('click',loadGA4Report);refreshGA4Status();});
